@@ -1,6 +1,11 @@
-# Minimal Alerting v1 (Terraform + TypeScript Lambda)
+# Alerting Infra
+Code for pytorch alerting infrastructure and home for issues fired
 
-This folder provisions a minimal pipeline:
+> Note: This repo is currently experimental
+
+#  Alerting (Terraform + TypeScript Lambda)
+
+This folder provisions a pipeline:
 - SNS topic → SQS queue (+ DLQ) → Lambda (Node.js/TypeScript)
 - Lambda logs each SQS record body to CloudWatch Logs, and writes the raw
   message to DynamoDB (table: "{prefix}-alerting-status").
@@ -15,7 +20,7 @@ This folder provisions a minimal pipeline:
 ## Layout
 - `infra/`: Terraform for SNS, SQS, IAM, Lambda, event mapping, logs
 - `lambda/`: TypeScript handler and build script
-  
+
 Additional resources
 - DynamoDB table: `{prefix}-alerting-status` (stores raw SQS message bodies)
  - GitHub App secret id: `${name_prefix}-alerting-app-secrets` (pre-created)
@@ -33,7 +38,7 @@ Additional resources
 ### Send a test message (AWS)
 - First tail logs: `aws logs tail /aws/lambda/alerting-dev-collector --follow`
 - Then send an SNS message: `aws sns publish --topic-arn $(terraform output -raw sns_topic_arn) --message '{"hello":"world"}'`
-  
+
 Verify DynamoDB write (AWS)
 - `aws dynamodb get-item --table-name $$(terraform output -raw status_table_name) --key '{"pk":{"S":"<SQS-MessageId>"}}'`
 
@@ -47,7 +52,7 @@ uv tool install terraform-local
 ```
 
 - Start LocalStack (community is sufficient).
-`localstack start -d` 
+`localstack start -d`
 
 - Use the LocalStack Terraform/CLI wrappers to avoid editing provider config:
   - From `lambda/`: `yarn build`
@@ -147,3 +152,6 @@ backend for each environment.
 - Matching rule: If an alert's title OR body contains "GitHub" (case-insensitive), the Lambda creates an issue in
   `github_repo` with the alert title/body.
 - The DynamoDB item records `Emitted_To_Github` (boolean) and, when created, `github_issue_number`.
+
+## License
+This repo is BSD 3-Clause licensed, as found in the LICENSE file.
