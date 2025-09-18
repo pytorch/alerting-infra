@@ -11,7 +11,7 @@ Grafana/CloudWatch → SNS → SQS → Lambda → DynamoDB + GitHub Issues
 **Key Features:**
 - 🔄 **Alert Normalization**: Converts CloudWatch and Grafana alerts to canonical schema
 - 🎯 **Intelligent Routing**: Team-based alert assignment with priority handling
-- 🔍 **Deduplication**: Fingerprint-based alert deduplication across sources
+- 🔍 **Alert Grouping**: Groups recurring alerts by fingerprint with fresh GitHub issues per occurrence
 - 📋 **Issue Lifecycle**: Automated GitHub issue creation, updates, and closure
 - 🛡️ **Resilience**: Circuit breakers, rate limiting, and graceful degradation
 - ⚡ **Serverless**: Fully serverless AWS architecture with auto-scaling
@@ -30,9 +30,21 @@ make build
 ```
 
 ### 2. Deploy to Development
+Prereq: Setup your local machine with AWS credentials
+
 ```bash
 make aws-init-dev
 make aws-apply-dev
+```
+
+### 2. Deploy to Prod
+Prereq: Setup your local machine with AWS credentials
+
+(Sorry, currently only local machine based deploys are supported)
+
+```bash
+make aws-init-prod
+make aws-apply-prod
 ```
 
 ### 3. Test the Pipeline
@@ -165,7 +177,7 @@ echo "Generated token: $TOKEN"
 ```bash
 # Create the secret (adjust name for your environment)
 aws secretsmanager create-secret \
-  --name "alerting-dev-webhook-secrets" \
+  --name "alerting-$ENV-webhook-secrets" \
   --description "Authentication tokens for external webhook notifications" \
   --secret-string "{\"grafana_webhook_token\": \"$TOKEN\"}"
 ```
@@ -216,6 +228,24 @@ annotations:
 - **DynamoDB Table**: `{prefix}-alerts-state` - Alert state tracking
 - **IAM Roles**: Least-privilege access for Lambda execution
 - **CloudWatch**: Logs, metrics, and monitoring alarms
+
+### Alert Deduplication & GitHub Issue Behavior
+
+**Important**: This system creates **fresh GitHub issues** for each alert occurrence, even for recurring alerts.
+
+**How it works:**
+- **Alert Grouping**: Alerts with the same fingerprint (alert rule + resource) are grouped logically
+- **DynamoDB State**: One record per unique alert fingerprint tracks the current state and most recent GitHub issue
+- **GitHub Issues**: Each alert firing creates a **new GitHub issue** for clean discussion context
+- **Fresh Context**: When an alert recurs after being resolved, it gets a new issue number (not reopened)
+
+**Example behavior:**
+1. Alert "CPU High" fires → Create GitHub issue #101 → DynamoDB tracks fingerprint with issue #101
+2. Alert resolves → Close GitHub issue #101 → DynamoDB status = CLOSED
+3. Same alert fires again → Create **NEW** GitHub issue #102 → DynamoDB tracks same fingerprint with issue #102
+4. Alert resolves → Close GitHub issue #102
+
+**Result**: Multiple GitHub issues may exist for the same logical alert, but only one DynamoDB state record per unique alert fingerprint.
 
 ### Environment Isolation
 - **Development**: `us-west-2` region, `alerting-dev` prefix
