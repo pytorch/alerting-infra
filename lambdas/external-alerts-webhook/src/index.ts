@@ -1,10 +1,68 @@
 import type { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import { createHash, timingSafeEqual } from "crypto";
 
+interface WebhookSecret {
+  grafana_webhook_token: string;
+}
+
+interface CachedSecret {
+  token: string;
+  expiresAt: number;
+}
+
 const sns = new SNSClient({});
+const secrets = new SecretsManagerClient({});
 const TOPIC_ARN = process.env.TOPIC_ARN!;
-const SHARED_TOKEN = process.env.SHARED_TOKEN!;
+const WEBHOOK_SECRET_ID = process.env.WEBHOOK_SECRET_ID!;
+
+// Cache the token for 5 minutes to avoid repeated Secrets Manager calls
+let cachedSecret: CachedSecret | null = null;
+
+async function getWebhookToken(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+
+  // Return cached token if still valid (5-minute TTL)
+  if (cachedSecret && cachedSecret.expiresAt > now) {
+    return cachedSecret.token;
+  }
+
+  if (!WEBHOOK_SECRET_ID) {
+    throw new Error("WEBHOOK_SECRET_ID not configured");
+  }
+
+  try {
+    const response = await secrets.send(
+      new GetSecretValueCommand({ SecretId: WEBHOOK_SECRET_ID })
+    );
+
+    if (!response.SecretString) {
+      throw new Error("Empty secret string from Secrets Manager");
+    }
+
+    const secret = JSON.parse(response.SecretString) as WebhookSecret;
+    if (!secret.grafana_webhook_token) {
+      throw new Error("Missing grafana_webhook_token in secret");
+    }
+
+    // Cache the token for 5 minutes
+    cachedSecret = {
+      token: secret.grafana_webhook_token,
+      expiresAt: now + 300, // 5 minutes
+    };
+
+    return secret.grafana_webhook_token;
+  } catch (error) {
+    // Clear cache on error to force refresh next time
+    cachedSecret = null;
+    console.error("Failed to load webhook token from Secrets Manager", {
+      error: error instanceof Error ? error.message : String(error),
+      secretId: WEBHOOK_SECRET_ID,
+    });
+    throw error;
+  }
+}
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   try {
@@ -12,10 +70,11 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       Object.entries(event.headers || {}).map(([k, v]) => [k.toLowerCase(), v ?? ""]),
     );
 
-    const token = headers["x-grafana-token"] || "";
+    const providedToken = headers["x-grafana-token"] || "";
+    const expectedToken = await getWebhookToken();
 
     // Use timing-safe comparison to prevent timing attacks
-    if (!isValidToken(token, SHARED_TOKEN)) {
+    if (!isValidToken(providedToken, expectedToken)) {
       return { statusCode: 401, body: "unauthorized" };
     }
 

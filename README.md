@@ -124,12 +124,7 @@ make ls-destroy           # Clean up LocalStack
 
 ### Environment Setup
 
-Create `infra/secrets.local.tfvars` (git-ignored) with sensitive values:
-```hcl
-webhook_grafana_token = "your-secure-webhook-token"
-```
-
-Set non-sensitive variables in your tfvars files or via command line:
+Set variables in your tfvars files or via command line:
 ```bash
 # In dev.tfvars or prod.tfvars
 github_repo = "your-org/your-repo"
@@ -151,6 +146,47 @@ aws secretsmanager create-secret \
     "github_app_id": "123456",
     "github_app_key_base64": "<base64-encoded-private-key>"
   }'
+```
+
+### Webhook Configuration
+
+**Grafana Webhook Token Setup**
+
+**Important**: The webhook secret for each environment must be created **before** deploying the infrastructure. Terraform references it but doesn't manage it.
+
+1. **Generate a secure token**:
+```bash
+# Generate a cryptographically secure token
+TOKEN=$(openssl rand -base64 64)
+echo "Generated token: $TOKEN"
+```
+
+2. **Create the secret** (before running terraform):
+```bash
+# Create the secret (adjust name for your environment)
+aws secretsmanager create-secret \
+  --name "alerting-dev-webhook-secrets" \
+  --description "Authentication tokens for external webhook notifications" \
+  --secret-string "{\"grafana_webhook_token\": \"$TOKEN\"}"
+```
+
+3. **Deploy infrastructure**:
+```bash
+# Now Terraform can reference the existing secret
+make aws-apply-dev
+```
+
+4. **Configure Grafana notification policy** with:
+   - **URL**: `terraform output -raw external_alerts_webhook_url`
+   - **Method**: POST
+   - **Header**: `X-Grafana-Token: <your-generated-token>`
+
+**Note**: The secret supports multiple webhook tokens. Future alert sources can be added like:
+```json
+{
+  "grafana_webhook_token": "token-for-grafana",
+  "other_service_webhook_token": "token-for-other-service",
+}
 ```
 
 ### Alert Source Configuration

@@ -19,11 +19,6 @@ variable "tags" {
   }
 }
 
-variable "webhook_grafana_token" {
-  description = "Token expected in X-Grafana-Token header for webhook auth (Grafana only)"
-  sensitive    = true
-  type         = string
-}
 
 variable "github_repo" {
   description = "GitHub repo to create issues in (format: org/repo)"

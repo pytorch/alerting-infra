@@ -73,9 +73,40 @@ resource "aws_iam_role" "webhook_lambda_role" {
   tags = var.tags
 }
 
+# Reference existing webhook secrets (managed externally)
+# NOTE: This secret must be created manually before deploying infrastructure:
+#   aws secretsmanager create-secret \
+#     --name "${local.name_prefix}-webhook-secrets" \
+#     --description "Authentication tokens for external webhook notifications" \
+#     --secret-string '{"grafana_webhook_token": "your-token-here"}'
+data "aws_secretsmanager_secret" "webhook_secrets" {
+  name = "${local.name_prefix}-webhook-secrets"
+}
+
 resource "aws_iam_role_policy_attachment" "webhook_basic_logs" {
   role       = aws_iam_role.webhook_lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_policy" "webhook_secrets_access" {
+  name   = "${local.name_prefix}-webhook-secrets-access"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = data.aws_secretsmanager_secret.webhook_secrets.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "webhook_secrets_access" {
+  role       = aws_iam_role.webhook_lambda_role.name
+  policy_arn = aws_iam_policy.webhook_secrets_access.arn
 }
 
 resource "aws_iam_policy" "webhook_publish_sns" {
@@ -107,8 +138,8 @@ resource "aws_lambda_function" "external_alerts_webhook" {
 
   environment {
     variables = {
-      TOPIC_ARN    = aws_sns_topic.alerts.arn
-      SHARED_TOKEN = var.webhook_grafana_token
+      TOPIC_ARN           = aws_sns_topic.alerts.arn
+      WEBHOOK_SECRET_ID   = data.aws_secretsmanager_secret.webhook_secrets.name
     }
   }
 

@@ -23,3 +23,4 @@ output "github_app_secret_id" {
   value       = "${local.name_prefix}-alerting-app-secrets"
   description = "Expected AWS Secrets Manager secret id for the GitHub App credentials"
 }
+

@@ -9,5 +9,5 @@ build({
   format: 'cjs',
   outfile: 'dist/index.js',
   sourcemap: true,
-  external: ['@aws-sdk/client-sns'],
+  external: ['@aws-sdk/client-sns', '@aws-sdk/client-secrets-manager'],
 }).catch(() => process.exit(1));

@@ -9,10 +9,6 @@ WEBHOOK_SRC := $(shell find $(WEBHOOK_DIR)/src -type f -name '*.ts' 2>/dev/null)
 COLLECTOR_OUT := $(COLLECTOR_DIR)/dist/index.js
 WEBHOOK_OUT := $(WEBHOOK_DIR)/dist/index.js
 
-# Optional local secrets var-file (ignored by Git)
-SECRETS_FILE := infra/secrets.local.tfvars
-SECRETS_ARG := $(if $(wildcard $(SECRETS_FILE)),-var-file=$(notdir $(SECRETS_FILE)))
-
 # Regions parsed from per-env tfvars (simple extractor)
 DEV_TFVARS := infra/dev.tfvars
 PROD_TFVARS := infra/prod.tfvars
@@ -40,20 +36,20 @@ clean:
 
 # Apply
 aws-apply-dev: aws-init-dev build
-	cd infra && terraform apply -auto-approve -var-file=dev.tfvars $(SECRETS_ARG)
+	cd infra && terraform apply -auto-approve -var-file=dev.tfvars
 
 aws-apply-prod: aws-init-prod build
-	cd infra && terraform apply -auto-approve -var-file=prod.tfvars $(SECRETS_ARG)
+	cd infra && terraform apply -auto-approve -var-file=prod.tfvars
 
 ls-apply: build
 	cd infra \
 		&& rm -rf .terraform terraform.tfstate terraform.tfstate.backup \
 		&& ( [ -f versions.remote.tf ] && mv versions.remote.tf versions.remote.tf.bak || true ) \
 		&& tflocal init -backend=false -reconfigure \
-		&& tflocal apply -auto-approve $(SECRETS_ARG) \
+		&& tflocal apply -auto-approve \
 		&& ( [ -f versions.remote.tf.bak ] && mv versions.remote.tf.bak versions.remote.tf || true )
 
-# Explicit backend init targets (idempotent).  These should run whenever 
+# Explicit backend init targets (idempotent).  These should run whenever
 # you want to change the backend config.
 aws-init-dev:
 	cd infra && terraform init -reconfigure -backend-config=backend-dev.hcl
@@ -66,16 +62,16 @@ destroy:
 	cd infra && terraform destroy -auto-approve
 
 aws-destroy-dev: aws-init-dev
-	cd infra && terraform destroy -auto-approve -var-file=dev.tfvars $(SECRETS_ARG)
+	cd infra && terraform destroy -auto-approve -var-file=dev.tfvars
 
 aws-destroy-prod: aws-init-prod
-	cd infra && terraform destroy -auto-approve -var-file=prod.tfvars $(SECRETS_ARG)
+	cd infra && terraform destroy -auto-approve -var-file=prod.tfvars
 
 ls-destroy:
 	cd infra \
 		&& rm -rf .terraform terraform.tfstate terraform.tfstate.backup \
 		&& ( [ -f versions.remote.tf ] && mv versions.remote.tf versions.remote.tf.bak || true ) \
-		&& tflocal destroy -auto-approve $(SECRETS_ARG) \
+		&& tflocal destroy -auto-approve \
 		&& ( [ -f versions.remote.tf.bak ] && mv versions.remote.tf.bak versions.remote.tf || true )
 
 # Publish
