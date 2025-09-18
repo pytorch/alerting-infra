@@ -56,7 +56,8 @@ export class CircuitBreaker {
       this.onFailure();
 
       // If circuit is now open and we have a fallback, use it
-      if (this.state === CircuitState.OPEN && fallback) {
+      // Note: onFailure() can change the state to OPEN
+      if ((this.state as CircuitState) === CircuitState.OPEN && fallback) {
         console.log('Circuit breaker OPENED - using fallback after failure');
         return await fallback();
       }

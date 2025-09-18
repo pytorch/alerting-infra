@@ -101,7 +101,14 @@ export class GrafanaTransformer extends BaseTransformer {
       }
     }
 
-    throw new Error(`Missing required field "rulename" or "alertname" in Grafana alert labels. This indicates corrupted data from Grafana. ${debugContext}`);
+    const debugEnvelope = {
+      received_at: new Date().toISOString(),
+      event_id: '',
+      ingest_topic: '',
+      ingest_region: '',
+      delivery_attempt: 1
+    };
+    throw new Error(`Missing required field "rulename" or "alertname" in Grafana alert labels. This indicates corrupted data from Grafana. ${this.extractDebugContext(rawPayload, debugEnvelope)}`);
   }
 
   private extractState(rawPayload: any, alert: any): "FIRING" | "RESOLVED" {
@@ -113,7 +120,14 @@ export class GrafanaTransformer extends BaseTransformer {
       if (normalized === "resolved" || normalized === "ok") return "RESOLVED";
     }
 
-    throw new Error(`Unable to determine alert state. Received status: '${String(status)}'. Expected 'firing' or 'resolved'. This indicates corrupted data from Grafana. ${debugContext}`);
+    const debugEnvelope = {
+      received_at: new Date().toISOString(),
+      event_id: '',
+      ingest_topic: '',
+      ingest_region: '',
+      delivery_attempt: 1
+    };
+    throw new Error(`Unable to determine alert state. Received status: '${String(status)}'. Expected 'firing' or 'resolved'. This indicates corrupted data from Grafana. ${this.extractDebugContext(rawPayload, debugEnvelope)}`);
   }
 
   private extractOccurredAt(alert: any, rawPayload: any): string {
