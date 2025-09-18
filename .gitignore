@@ -16,6 +16,9 @@ infra/external-alerts-webhook.zip
 !*.tfvars*
 
 # Local-only tfvars files. For testing, secrets, etc.
-*.local.tfvars 
+*.local.tfvars
 
 sample_data/
+scratch/
+
+.claude/

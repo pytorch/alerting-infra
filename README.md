@@ -1,157 +1,342 @@
-# Alerting Infra
-Code for pytorch alerting infrastructure and home for issues fired
+# PyTorch Test Infrastructure Alerting System
 
-> Note: This repo is currently experimental
+A production-ready alert normalization pipeline that processes CloudWatch and Grafana alerts, normalizes them into a canonical format, and automatically manages GitHub issues for incident response.
 
-#  Alerting (Terraform + TypeScript Lambda)
+## 🏗️ Architecture Overview
 
-This folder provisions a pipeline:
-- SNS topic → SQS queue (+ DLQ) → Lambda (Node.js/TypeScript)
-- Lambda logs each SQS record body to CloudWatch Logs, and writes the raw
-  message to DynamoDB (table: "{prefix}-alerting-status").
-
-## Prerequisites
-- Terraform >= 1.6
-- AWS CLI configured (SSO or profile)
-- Node.js 18+ and Yarn (or npm)
-- Optional: LocalStack + `tflocal`/`awslocal` for local E2E testing
-
-
-## Layout
-- `infra/`: Terraform for SNS, SQS, IAM, Lambda, event mapping, logs
-- `lambda/`: TypeScript handler and build script
-
-Additional resources
-- DynamoDB table: `{prefix}-alerting-status` (stores raw SQS message bodies)
- - GitHub App secret id: `${name_prefix}-alerting-app-secrets` (pre-created)
-
-## Build the Lambdas
-- From alerting-tf:
-  - `make build` (builds both `lambdas/collector` and `lambdas/external-alerts-webhook`)
-
-## Deploy (AWS)
-- From `infra/`:
-  - `terraform init`
-  - `terraform apply -var name_prefix=alerting-dev -var aws_region=us-east-1`
-- Outputs include the SNS topic ARN and SQS URL.
-
-### Send a test message (AWS)
-- First tail logs: `aws logs tail /aws/lambda/alerting-dev-collector --follow`
-- Then send an SNS message: `aws sns publish --topic-arn $(terraform output -raw sns_topic_arn) --message '{"hello":"world"}'`
-
-Verify DynamoDB write (AWS)
-- `aws dynamodb get-item --table-name $$(terraform output -raw status_table_name) --key '{"pk":{"S":"<SQS-MessageId>"}}'`
-
-
-## Local E2E (LocalStack)
-Install deps for LocalStack
 ```
-uv tool install localstack-core
-uv tool install awscli-local
-uv tool install terraform-local
+Grafana/CloudWatch → SNS → SQS → Lambda → DynamoDB + GitHub Issues
 ```
 
-- Start LocalStack (community is sufficient).
-`localstack start -d`
+**Key Features:**
+- 🔄 **Alert Normalization**: Converts CloudWatch and Grafana alerts to canonical schema
+- 🎯 **Intelligent Routing**: Team-based alert assignment with priority handling
+- 🔍 **Deduplication**: Fingerprint-based alert deduplication across sources
+- 📋 **Issue Lifecycle**: Automated GitHub issue creation, updates, and closure
+- 🛡️ **Resilience**: Circuit breakers, rate limiting, and graceful degradation
+- ⚡ **Serverless**: Fully serverless AWS architecture with auto-scaling
 
-- Use the LocalStack Terraform/CLI wrappers to avoid editing provider config:
-  - From `lambda/`: `yarn build`
-  - From `infra/`: `tflocal init && tflocal apply -var name_prefix=ls -var aws_region=us-east-1`
-  - Tail Logs: `awslocal logs tail /aws/lambda/ls-collector --follow`
-  - Publish: `awslocal sns publish --topic-arn $(tflocal output -raw sns_topic_arn) --message '{"hello":"localstack"}'`
+## 🚀 Quick Start
 
-## Clean up
-- AWS: `terraform destroy`
-- LocalStack: `tflocal destroy`
+### Prerequisites
+- **Terraform** >= 1.6
+- **AWS CLI** configured (SSO or profile)
+- **Node.js** 18+ and Yarn
+- **GitHub App** with issues permissions (see setup below)
 
-Notes
-- Ensure you rebuild the Lambda (`yarn build`) before each `terraform apply` if handler code changes.
-- For shared environments, switch to S3 state + DynamoDB lock before multi-user use.
-
-## Environments (dev/prod)
-This repo supports two isolated AWS environments in different regions using
-Terraform workspaces and per-env tfvars files.
-
-- Dev (us-west-2): `infra/dev.us-west-2.tfvars` with `name_prefix=alerting-dev`.
-- Prod (us-east-1): `infra/prod.us-east-1.tfvars` with `name_prefix=alerting-prod`.
-
-Makefile shortcuts
-- Build: `make build`
-- Init backend (dev/prod): `make aws-init-dev` / `make aws-init-prod`
-- Deploy dev: `make aws-apply-dev`
-- Deploy prod: `make aws-apply-prod`
-- Publish test (dev): `make aws-publish-dev`
-- Publish test (prod): `make aws-publish-prod`
-- Tail logs (dev): `make aws-logs-dev`
-- Tail logs (prod): `make aws-logs-prod`
-
-Local secrets overlay (no Git)
-- Create `alerting-tf/infra/secrets.local.tfvars` with sensitive values. A template
-  is provided at `alerting-tf/infra/secrets.local.tfvars.example`.
-- The Makefile automatically appends `-var-file=secrets.local.tfvars` to
-  env-specific apply/destroy commands if the file exists.
-
-## External Alerts Webhook → SNS bridge
-We expose a small HTTPS endpoint (API Gateway HTTP API) that authenticates the caller via a shared header and publishes the payload to the existing SNS topic unchanged. For now, the webhook expects a Grafana-specific header; we can add more sources later without changing the endpoint shape.
-
-Outputs
-- Webhook URL: `terraform output -raw external_alerts_webhook_url`
-- SNS topic ARN: `terraform output -raw sns_topic_arn`
- - GitHub App Secret Id: `terraform output -raw github_app_secret_id`
-
-Configure a webhook client (e.g., Grafana)
-- URL: `<webhook_url>` (already includes the path)
-- Header: `X-Grafana-Token: <the value of webhook_grafana_token>`
-- Method: `POST`
-- Body: send your JSON alert body (we forward as-is)
-
-Auth secret
-- Set `webhook_grafana_token` in your local `secrets.local.tfvars` (same for dev/prod).
-
-Behind the scenes, each target selects a Terraform workspace (`dev`/`prod`) and
-uses a dedicated TF data dir to keep backend inits separate (`infra/.terraform-dev`
-and `infra/.terraform-prod`). State is isolated per env via distinct S3 keys and
-separate DynamoDB lock tables. Resource names are prefixed via `name_prefix`.
-
-### Remote state (recommended for dev/prod)
-We configure per-env backends explicitly
-using `infra/backend-dev.hcl` and `infra/backend-prod.hcl`.
-
-
-Manual backend.hcl examples:
-
-backend.dev.hcl
+### 1. Build Lambda Functions
+```bash
+make build
 ```
-bucket         = "<your-dev-tfstate-bucket>"
+
+### 2. Deploy to Development
+```bash
+make aws-init-dev
+make aws-apply-dev
+```
+
+### 3. Test the Pipeline
+```bash
+# Tail logs in one terminal
+make logs-dev
+
+# Send test alert in another terminal
+make aws-publish-dev
+```
+
+### 4. Configure Alert Sources
+**Grafana Webhook:**
+```bash
+# Get webhook URL
+cd infra && terraform output -raw external_alerts_webhook_url
+
+# Configure in Grafana with header:
+# X-Grafana-Token: <your-webhook-token>
+```
+
+**CloudWatch Alarms:**
+```bash
+# Get SNS topic ARN for CloudWatch alarm actions
+cd infra && terraform output -raw sns_topic_arn
+```
+
+## 📁 Project Structure
+
+```
+├── infra/                    # Terraform infrastructure
+│   ├── *.tf                 # AWS resource definitions
+│   ├── dev.tfvars          # Development environment config
+│   ├── prod.tfvars         # Production environment config
+│   └── backend-*.hcl       # Remote state configuration
+├── lambdas/                 # TypeScript Lambda functions
+│   ├── collector/           # Main alert processing engine
+│   │   ├── src/            # TypeScript source code
+│   │   ├── __tests__/      # Unit tests with Vitest
+│   │   └── dist/           # Compiled JavaScript (build output)
+│   └── external-alerts-webhook/  # Grafana webhook endpoint
+├── ReferenceData/          # Documentation and schemas
+├── bootstrap/              # Infrastructure setup utilities
+└── scratch/               # Development workspace
+```
+
+## 🛠️ Development Commands
+
+### Building & Testing
+```bash
+# Build all Lambda functions
+make build
+
+# Clean build artifacts
+make clean
+
+# Run tests for collector Lambda
+cd lambdas/collector
+yarn test                    # Run unit tests
+yarn test:watch             # Watch mode
+yarn test:coverage          # With coverage report
+yarn lint                   # TypeScript checking
+```
+
+### Deployment & Management
+```bash
+# Development Environment
+make aws-init-dev           # Initialize Terraform backend
+make aws-apply-dev          # Deploy to dev
+make aws-destroy-dev        # Destroy dev resources
+make logs-dev              # Tail dev Lambda logs
+make aws-publish-dev       # Send test message
+
+# Production Environment
+make aws-init-prod         # Initialize Terraform backend
+make aws-apply-prod        # Deploy to prod
+make aws-destroy-prod      # Destroy prod resources
+make logs-prod            # Tail prod Lambda logs
+make aws-publish-prod     # Send test message
+
+# Local Development (LocalStack)
+make ls-apply             # Deploy to LocalStack
+make ls-logs              # Tail LocalStack logs
+make ls-publish           # Send test message locally
+make ls-destroy           # Clean up LocalStack
+```
+
+## ⚙️ Configuration
+
+### Environment Setup
+
+Create `infra/secrets.local.tfvars` (git-ignored) with sensitive values:
+```hcl
+webhook_grafana_token = "your-secure-webhook-token"
+```
+
+Set non-sensitive variables in your tfvars files or via command line:
+```bash
+# In dev.tfvars or prod.tfvars
+github_repo = "your-org/your-repo"
+```
+
+### GitHub App Setup
+
+1. **Create GitHub App** in your organization:
+   - Permissions: Issues (Read/Write), Metadata (Read)
+   - Note the App ID and generate a private key
+
+2. **Install App** on your target repository
+
+3. **Store Credentials** in AWS Secrets Manager:
+```bash
+aws secretsmanager create-secret \
+  --name "alerting-dev-alerting-app-secrets" \
+  --secret-string '{
+    "github_app_id": "123456",
+    "github_app_key_base64": "<base64-encoded-private-key>"
+  }'
+```
+
+### Alert Source Configuration
+
+**CloudWatch Alarms** - Add to AlarmDescription:
+```
+TEAM=dev-infra | PRIORITY=P1 | RUNBOOK=https://runbook.example.com
+High CPU usage detected on production instances.
+```
+
+**Grafana Alerts** - Use labels:
+```yaml
+labels:
+  team: dev-infra
+  priority: P2
+annotations:
+  runbook_url: https://runbook.example.com
+  description: Database connection pool exhausted
+```
+
+## 🏛️ Infrastructure Details
+
+### AWS Resources Created
+- **SNS Topic**: `{prefix}-alerts` - Multi-source alert ingestion
+- **SQS Queue**: `{prefix}-alerts` - Alert buffering with DLQ
+- **Lambda Functions**: Collector (processing) + Webhook (Grafana)
+- **DynamoDB Table**: `{prefix}-alerts-state` - Alert state tracking
+- **IAM Roles**: Least-privilege access for Lambda execution
+- **CloudWatch**: Logs, metrics, and monitoring alarms
+
+### Environment Isolation
+- **Development**: `us-west-2` region, `alerting-dev` prefix
+- **Production**: `us-east-1` region, `alerting-prod` prefix
+- **State Management**: Separate S3 backends with DynamoDB locking
+
+### Remote State Configuration
+
+Create backend configuration files:
+
+**`infra/backend-dev.hcl`:**
+```hcl
+bucket         = "your-terraform-state-dev"
 key            = "alerting/dev/terraform.tfstate"
 region         = "us-west-2"
-dynamodb_table = "<your-dev-tflock-table>"
+dynamodb_table = "terraform-locks-dev"
 encrypt        = true
 ```
 
-backend.prod.hcl
-```
-bucket         = "<your-prod-tfstate-bucket>"
+**`infra/backend-prod.hcl`:**
+```hcl
+bucket         = "your-terraform-state-prod"
 key            = "alerting/prod/terraform.tfstate"
 region         = "us-east-1"
-dynamodb_table = "<your-prod-tflock-table>"
+dynamodb_table = "terraform-locks-prod"
 encrypt        = true
 ```
 
-Usage:
-- Dev: `cd infra && terraform init -reconfigure -backend-config=../backend.dev.hcl`
-- Prod: `cd infra && terraform init -reconfigure -backend-config=../backend.prod.hcl`
+## 📊 Monitoring & Observability
+(Aspirational: Not yet implmented)
 
-You can continue using the same `make aws-apply-*` targets after initializing the
-backend for each environment.
+### CloudWatch Metrics
+- **Alert Processing**: Success/failure rates by source and team
+- **GitHub Integration**: API success rates and rate limiting
+- **Queue Depth**: SQS and DLQ message counts
+- **Processing Latency**: P50/P95/P99 response times
 
-## GitHub Integration (v1 minimal)
-- Variable `github_repo` (default `pytorch/test-infra`) sets the repo for issue creation.
-- The collector Lambda reads the pre-created secret `${name_prefix}-alerting-app-secrets` from AWS Secrets Manager
-  containing JSON keys: `github_app_client_id`, `github_app_id`, `github_app_client_secret`, `github_app_key_base64`.
-- Matching rule: If an alert's title OR body contains "GitHub" (case-insensitive), the Lambda creates an issue in
-  `github_repo` with the alert title/body.
-- The DynamoDB item records `Emitted_To_Github` (boolean) and, when created, `github_issue_number`.
+### CloudWatch Alarms (Auto-Created)
+- **DLQ High Depth**: Failed message accumulation
+- **High Error Rate**: Processing failures above threshold
+- **Lambda Duration**: Function timeout approaching
 
-## License
+### Structured Logging
+All logs use structured JSON with correlation IDs:
+```json
+{
+  "timestamp": "2024-01-15T10:30:00Z",
+  "level": "INFO",
+  "messageId": "12345-abcde",
+  "fingerprint": "abc123...",
+  "action": "CREATE",
+  "team": "dev-infra",
+  "priority": "P1",
+  "source": "grafana"
+}
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Alert not creating GitHub issue:**
+1. Check CloudWatch logs for `NORMALIZED_ALERT` entries
+2. Verify GitHub App installation and permissions
+3. Check DynamoDB `alerts_state` table for alert state
+4. Look for circuit breaker or rate limiting logs
+
+**Missing required fields error:**
+```bash
+# CloudWatch alerts need TEAM and PRIORITY in AlarmDescription
+TEAM=dev-infra | PRIORITY=P1 | RUNBOOK=https://...
+
+# Grafana alerts need team and priority labels
+labels:
+  team: dev-infra
+  priority: P2
+```
+
+**High DLQ depth:**
+1. Check DLQ messages for common error patterns
+2. Review CloudWatch error logs for processing failures
+3. Verify alert payload format matches expected schema
+
+### Debugging Commands
+```bash
+# View recent Lambda logs
+aws logs tail /aws/lambda/alerting-dev-collector --follow
+
+# Check DynamoDB alert state
+aws dynamodb scan --table-name alerting-dev-alerts-state --limit 10
+
+# View DLQ messages
+aws sqs receive-message --queue-url $(terraform output -raw dlq_url)
+
+# Test alert processing locally
+cd lambdas/collector && yarn test --verbose
+
+# Validate Terraform configuration
+cd infra && terraform validate && terraform plan
+```
+
+## 🔐 Security Features
+
+- **Input Validation**: Comprehensive sanitization and size limits
+- **Authentication**: Timing-safe webhook token comparison
+- **GitHub Integration**: App-based authentication with scoped permissions
+- **Secret Management**: AWS Secrets Manager
+- **IAM**: Least-privilege roles with resource-specific permissions
+
+## 🧪 Testing
+
+### Unit Tests
+```bash
+cd lambdas/collector
+yarn test                    # Run all tests
+yarn test fingerprint       # Run specific test file
+yarn test --coverage        # Generate coverage report
+yarn test --ui              # Interactive test UI
+```
+
+### Integration Testing
+```bash
+# LocalStack full pipeline test
+make ls-apply
+make ls-publish
+make ls-logs
+
+# Cleanup
+make ls-destroy
+```
+
+### Test Data
+Realistic test payloads available in `lambdas/collector/test-data/`:
+- `grafana-firing.json` - Grafana alert in firing state
+- `cloudwatch-alarm.json` - CloudWatch alarm notification
+- `grafana-resolved.json` - Grafana alert resolution
+
+## 🤝 Contributing
+
+1. **Development Setup**: Follow quick start guide
+2. **Testing**: Ensure tests pass (`make build && cd lambdas/collector && yarn test`)
+3. **Code Style**: Use Prettier formatting (`yarn format`)
+4. **Commits**: Use conventional commit format with scope prefixes
+5. **Pull Requests**: Include test results and infrastructure changes
+
+### Commit Examples
+```bash
+feat(collector): add circuit breaker for GitHub API resilience
+fix(webhook): resolve timing attack vulnerability in auth
+docs: update architecture overview with new components
+test: add fingerprint edge cases for CloudWatch alarms
+```
+
+## 📜 License
+
 This repo is BSD 3-Clause licensed, as found in the LICENSE file.
+
+---
+
+**Need Help?** Check the troubleshooting section above or review CloudWatch logs for detailed error information.
