@@ -7,6 +7,9 @@ resource "aws_sqs_queue" "dlq" {
 resource "aws_sqs_queue" "alerts" {
   name = "${local.name_prefix}-alerts"
 
+  # Visibility timeout must be >= Lambda timeout
+  visibility_timeout_seconds = 70
+
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.dlq.arn
     maxReceiveCount     = 5
