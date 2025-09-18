@@ -211,6 +211,39 @@ export class GitHubClient {
     );
   }
 
+  async closeGithubIssue(issueNumber: number): Promise<boolean> {
+    // CIRCUIT BREAKER: Protect against GitHub API failures
+    return await this.circuitBreaker.execute(
+      async () => this.closeGithubIssueInternal(issueNumber),
+      async () => {
+        // Fallback: Log the close request for manual processing
+        console.warn('GitHub API circuit breaker OPEN - logging issue close for manual processing', {
+          issueNumber,
+          circuitStatus: this.circuitBreaker.getStatus()
+        });
+        // Return false to indicate fallback mode
+        return false;
+      }
+    );
+  }
+
+  async commentOnGithubIssue(issueNumber: number, comment: string): Promise<boolean> {
+    // CIRCUIT BREAKER: Protect against GitHub API failures
+    return await this.circuitBreaker.execute(
+      async () => this.commentOnGithubIssueInternal(issueNumber, comment),
+      async () => {
+        // Fallback: Log the comment request for manual processing
+        console.warn('GitHub API circuit breaker OPEN - logging issue comment for manual processing', {
+          issueNumber,
+          comment: comment.substring(0, 100) + '...', // Truncate for logging
+          circuitStatus: this.circuitBreaker.getStatus()
+        });
+        // Return false to indicate fallback mode
+        return false;
+      }
+    );
+  }
+
   private async createGithubIssueInternal(title: string, body: string, labels: string[]): Promise<number> {
     if (!this.githubRepo) throw new Error("GITHUB_REPO not set");
     const [owner, repo] = this.githubRepo.split("/");
@@ -236,5 +269,57 @@ export class GitHubClient {
     }
     const data = await resp.json() as { number: number };
     return data.number;
+  }
+
+  private async closeGithubIssueInternal(issueNumber: number): Promise<boolean> {
+    if (!this.githubRepo) throw new Error("GITHUB_REPO not set");
+    const [owner, repo] = this.githubRepo.split("/");
+    const token = await this.getInstallationToken();
+
+    const resp = await this.rateLimiter.execute(async () =>
+      fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "pytorch-alerting",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ state: "closed" }),
+      })
+    );
+    if (!resp.ok) {
+      // Security: Don't log full response body which might contain sensitive data
+      const errorInfo = `${resp.status} ${resp.statusText}`;
+      throw new Error(`Failed to close issue #${issueNumber}: ${errorInfo}`);
+    }
+    return true;
+  }
+
+  private async commentOnGithubIssueInternal(issueNumber: number, comment: string): Promise<boolean> {
+    if (!this.githubRepo) throw new Error("GITHUB_REPO not set");
+    const [owner, repo] = this.githubRepo.split("/");
+    const token = await this.getInstallationToken();
+
+    const resp = await this.rateLimiter.execute(async () =>
+      fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "pytorch-alerting",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ body: comment }),
+      })
+    );
+    if (!resp.ok) {
+      // Security: Don't log full response body which might contain sensitive data
+      const errorInfo = `${resp.status} ${resp.statusText}`;
+      throw new Error(`Failed to comment on issue #${issueNumber}: ${errorInfo}`);
+    }
+    return true;
   }
 }

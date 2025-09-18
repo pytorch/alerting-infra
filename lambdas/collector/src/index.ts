@@ -68,6 +68,74 @@ async function createGitHubIssueForAlert(
   }
 }
 
+/**
+ * Close a GitHub issue for a resolved alert
+ */
+async function closeGitHubIssueForAlert(
+  issueNumber: number,
+  fingerprint: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const success = await githubClient.closeGithubIssue(issueNumber);
+
+    if (success) {
+      console.log(`✅ Closed GitHub issue #${issueNumber} for fingerprint ${fingerprint}`);
+      return { success: true };
+    } else {
+      console.warn(`⚠️ GitHub issue #${issueNumber} close fell back to manual processing (circuit breaker)`);
+      return { success: false, error: "Circuit breaker fallback" };
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Failed to close GitHub issue", {
+      fingerprint,
+      issueNumber,
+      error: errorMessage,
+    });
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Add a comment to a GitHub issue for a recurring alert
+ */
+async function commentOnGitHubIssueForAlert(
+  alertEvent: import('./types').AlertEvent,
+  issueNumber: number,
+  fingerprint: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const commentBody = [
+      `**Alert Update**`,
+      `- **State**: ${alertEvent.state}`,
+      `- **Occurred At**: ${alertEvent.occurred_at}`,
+      alertEvent.reason ? `- **Reason**: ${alertEvent.reason}` : "",
+      "",
+      "The alert condition is still active.",
+      "",
+      `**Fingerprint**: \`${fingerprint}\``
+    ].filter(Boolean).join("\n");
+
+    const success = await githubClient.commentOnGithubIssue(issueNumber, commentBody);
+
+    if (success) {
+      console.log(`✅ Added comment to GitHub issue #${issueNumber} for fingerprint ${fingerprint}`);
+      return { success: true };
+    } else {
+      console.warn(`⚠️ GitHub issue #${issueNumber} comment fell back to manual processing (circuit breaker)`);
+      return { success: false, error: "Circuit breaker fallback" };
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Failed to comment on GitHub issue", {
+      fingerprint,
+      issueNumber,
+      error: errorMessage,
+    });
+    return { success: false, error: errorMessage };
+  }
+}
+
 export const handler: SQSHandler = async (event) => {
   const batchItemFailures: { itemIdentifier: string }[] = [];
 
@@ -93,8 +161,12 @@ export const handler: SQSHandler = async (event) => {
       }
 
       const { fingerprint, action, metadata } = result;
-      if (!fingerprint) {
-        console.error("No fingerprint generated", { messageId: record.messageId });
+      if (!fingerprint || !action) {
+        console.error("No fingerprint or action generated", {
+          messageId: record.messageId,
+          hasFingerprint: !!fingerprint,
+          hasAction: !!action
+        });
         batchItemFailures.push({ itemIdentifier: record.messageId });
         continue;
       }
@@ -132,16 +204,25 @@ export const handler: SQSHandler = async (event) => {
       console.log(`📝 MESSAGE ID: ${record.messageId}`);
 
       if (alertEvent) {
-        const wouldCreateIssue = `[${alertEvent.priority}] ${alertEvent.title}`;
-        const wouldCreateLabels = [
-          "area:alerting",
-          `Pri: ${alertEvent.priority}`,
-          `Team: ${alertEvent.team}`,
-          `Source: ${alertEvent.source}`
-        ];
-        console.log(`\n🎫 WOULD CREATE GITHUB ISSUE:`);
-        console.log(`   Title: ${wouldCreateIssue}`);
-        console.log(`   Labels: ${wouldCreateLabels.join(", ")}`);
+        console.log(`\n🎫 GITHUB ACTION PLAN:`);
+        console.log(`   Action: ${action}`);
+        if (action === "CREATE") {
+          const wouldCreateIssue = `[${alertEvent.priority}] ${alertEvent.title}`;
+          const wouldCreateLabels = [
+            "area:alerting",
+            `Pri: ${alertEvent.priority}`,
+            `Team: ${alertEvent.team}`,
+            `Source: ${alertEvent.source}`
+          ];
+          console.log(`   Title: ${wouldCreateIssue}`);
+          console.log(`   Labels: ${wouldCreateLabels.join(", ")}`);
+        } else if (action === "CLOSE") {
+          console.log(`   Will close existing issue for resolved alert`);
+        } else if (action === "COMMENT") {
+          console.log(`   Will add comment to existing issue for continuing alert`);
+        } else {
+          console.log(`   No GitHub action required`);
+        }
         console.log(`   Repo: ${githubRepo}`);
       }
 
@@ -152,22 +233,51 @@ export const handler: SQSHandler = async (event) => {
       let emittedToGithub = false;
       let issueNumber: number | undefined = undefined;
 
-      // GitHub issue creation (optional - controlled by environment variable)
+      // GitHub action handling (optional - controlled by environment variable)
       if (enableGithubIssues && result.metadata?.alertEvent) {
         try {
-          const githubResult = await createGitHubIssueForAlert(result.metadata.alertEvent, fingerprint);
-          emittedToGithub = githubResult.success;
-          issueNumber = githubResult.issueNumber;
+          if (action === "CREATE") {
+            const githubResult = await createGitHubIssueForAlert(result.metadata.alertEvent, fingerprint);
+            emittedToGithub = githubResult.success;
+            issueNumber = githubResult.issueNumber;
+          } else if (action === "CLOSE") {
+            // Load existing state to get issue number
+            if (stateManager) {
+              const existingState = await stateManager.loadState(fingerprint);
+              if (existingState?.issue_number) {
+                const githubResult = await closeGitHubIssueForAlert(existingState.issue_number, fingerprint);
+                emittedToGithub = githubResult.success;
+                issueNumber = existingState.issue_number; // Keep the same issue number
+              } else {
+                console.warn(`Cannot close GitHub issue: no issue number found for fingerprint ${fingerprint}`);
+              }
+            }
+          } else if (action === "COMMENT") {
+            // Load existing state to get issue number
+            if (stateManager) {
+              const existingState = await stateManager.loadState(fingerprint);
+              if (existingState?.issue_number) {
+                const githubResult = await commentOnGitHubIssueForAlert(result.metadata.alertEvent, existingState.issue_number, fingerprint);
+                emittedToGithub = githubResult.success;
+                issueNumber = existingState.issue_number; // Keep the same issue number
+              } else {
+                console.warn(`Cannot comment on GitHub issue: no issue number found for fingerprint ${fingerprint}`);
+              }
+            }
+          } else {
+            console.log(`No GitHub action needed for action: ${action}`);
+          }
           // Continue processing regardless of GitHub success/failure
         } catch (githubError) {
-          console.error("GitHub issue creation failed, continuing with DynamoDB save", {
+          console.error(`GitHub ${action} action failed, continuing with DynamoDB save`, {
             fingerprint,
+            action,
             error: githubError instanceof Error ? githubError.message : String(githubError),
           });
           // Continue processing - GitHub failure should not stop DynamoDB save
         }
       } else if (result.metadata?.alertEvent) {
-        console.log(`📝 GitHub issue creation disabled (ENABLE_GITHUB_ISSUES=${enableGithubIssues})`);
+        console.log(`📝 GitHub actions disabled (ENABLE_GITHUB_ISSUES=${enableGithubIssues})`);
       }
 
       // ALWAYS save to DynamoDB regardless of GitHub status
@@ -180,9 +290,9 @@ export const handler: SQSHandler = async (event) => {
             issueNumber // undefined when GitHub disabled or failed - this is fine
           );
           const githubStatus = emittedToGithub
-            ? ` (with GitHub issue #${issueNumber})`
+            ? ` (with GitHub ${action.toLowerCase()} #${issueNumber})`
             : enableGithubIssues
-              ? ' (GitHub issue creation failed)'
+              ? ` (GitHub ${action.toLowerCase()} failed)`
               : ' (GitHub disabled)';
           console.log(`✅ Stored alert state ${fingerprint} to DynamoDB${githubStatus}`);
         } catch (err) {

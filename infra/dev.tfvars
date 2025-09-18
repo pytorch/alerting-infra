@@ -1,3 +1,4 @@
 aws_region = "us-east-1"
 name_prefix = "alerting-dev"
-enable_github_issues = false
+enable_github_issues = true
+github_repo = "Alert-Testing/alert-infra-canary"
