@@ -11,21 +11,21 @@ If a message is passed to SNS that looks like this:
 What will be received by the collector lambda is this:
 ```json
 {
-  messageId: '5c939a8e-9c8d-4fe3-86fa-8f473e8ad057',
-  receiptHandle: 'AQEB0...long_string...6fw==',
-  body: '{"hello":"dev for github"}',
-  attributes: {
-    ApproximateReceiveCount: '1',
-    SentTimestamp: '1758041806210',
-    SenderId: 'AIDAIT2UOQQY3AUEKVGXU',
-    ApproximateFirstReceiveTimestamp: '1758041806222'
+  "messageId": "5c939a8e-9c8d-4fe3-86fa-8f473e8ad057",
+  "receiptHandle": "AQEB0...long_string...6fw==",
+  "body": "{\"hello\":\"dev for github\"}",
+  "attributes": {
+    "ApproximateReceiveCount": "1",
+    "SentTimestamp": "1758041806210",
+    "SenderId": "AIDAIT2UOQQY3AUEKVGXU",
+    "ApproximateFirstReceiveTimestamp": "1758041806222"
   },
-  messageAttributes: {},
-  md5OfMessageAttributes: null,
-  md5OfBody: '9c96f34d85827fbb7a02446744b41858',
-  eventSource: 'aws:sqs',
-  eventSourceARN: 'arn:aws:sqs:us-east-1:308535385114:alerting-dev-alerts',
-  awsRegion: 'us-east-1'
+  "messageAttributes": {},
+  "md5OfMessageAttributes": null,
+  "md5OfBody": "9c96f34d85827fbb7a02446744b41858",
+  "eventSource": "aws:sqs",
+  "eventSourceARN": "arn:aws:sqs:us-east-1:308535385114:alerting-dev-alerts",
+  "awsRegion": "us-east-1"
 }
 ```
 
@@ -33,21 +33,21 @@ What will be received by the collector lambda is this:
 
 ```json
 {
-  messageId: 'd2af6eed-107f-4916-b4d8-4ff649a1afe3',
-  receiptHandle: 'AQE...RQw==',
-  body: '{"AlarmName":"[TITLE-TEST-ALARM] Title of Broken Alarm","AlarmDescription":"Body of alarm.\\nStats:\\nTEAM=foobar\\nPriority=P1","AWSAccountId":"308535385114","AlarmConfigurationUpdatedTimestamp":"2025-09-16T16:54:41.676+0000","NewStateValue":"ALARM","NewStateReason":"Threshold Crossed: 1 out of the last 1 datapoints [596.3636363636364 (16/09/25 16:58:00)] was greater than the threshold (580.0) (minimum 1 datapoint for OK -> ALARM transition).","StateChangeTime":"2025-09-16T16:59:17.131+0000","Region":"US East (N. Virginia)","AlarmArn":"arn:aws:cloudwatch:us-east-1:308535385114:alarm:[TITLE-TEST-ALARM] Title of Broken Alarm","OldStateValue":"OK","OKActions":[],"AlarmActions":["arn:aws:sns:us-east-1:308535385114:alerting-dev-alerts"],"InsufficientDataActions":[],"Trigger":{"MetricName":"run.ghrunners.perOrg.perRunnerType.busy","Namespace":"gh-ci-scaleUp-dim","StatisticType":"Statistic","Statistic":"AVERAGE","Unit":null,"Dimensions":[{"value":"pytorch","name":"Org"},{"value":"linux.2xlarge","name":"RunnerType"}],"Period":60,"EvaluationPeriods":1,"DatapointsToAlarm":1,"ComparisonOperator":"GreaterThanThreshold","Threshold":580.0,"TreatMissingData":"notBreaching","EvaluateLowSampleCountPercentile":""}}',
-  attributes: {
-    ApproximateReceiveCount: '1',
-    SentTimestamp: '1758041957206',
-    SenderId: 'AIDAIT2UOQQY3AUEKVGXU',
-    ApproximateFirstReceiveTimestamp: '1758041957230'
+  "messageId": "d2af6eed-107f-4916-b4d8-4ff649a1afe3",
+  "receiptHandle": "AQE...RQw==",
+  "body": "{\"AlarmName\":\"[TITLE-TEST-ALARM] Title of Broken Alarm\",\"AlarmDescription\":\"Body of alarm.\\nStats:\\nTEAM=foobar\\nPriority=P1\",\"AWSAccountId\":\"308535385114\",\"AlarmConfigurationUpdatedTimestamp\":\"2025-09-16T16:54:41.676+0000\",\"NewStateValue\":\"ALARM\",\"NewStateReason\":\"Threshold Crossed: 1 out of the last 1 datapoints [596.3636363636364 (16/09/25 16:58:00)] was greater than the threshold (580.0) (minimum 1 datapoint for OK -> ALARM transition).\",\"StateChangeTime\":\"2025-09-16T16:59:17.131+0000\",\"Region\":\"US East (N. Virginia)\",\"AlarmArn\":\"arn:aws:cloudwatch:us-east-1:308535385114:alarm:[TITLE-TEST-ALARM] Title of Broken Alarm\",\"OldStateValue\":\"OK\",\"OKActions\":[],\"AlarmActions\":[\"arn:aws:sns:us-east-1:308535385114:alerting-dev-alerts\"],\"InsufficientDataActions\":[],\"Trigger\":{\"MetricName\":\"run.ghrunners.perOrg.perRunnerType.busy\",\"Namespace\":\"gh-ci-scaleUp-dim\",\"StatisticType\":\"Statistic\",\"Statistic\":\"AVERAGE\",\"Unit\":null,\"Dimensions\":[{\"value\":\"pytorch\",\"name\":\"Org\"},{\"value\":\"linux.2xlarge\",\"name\":\"RunnerType\"}],\"Period\":60,\"EvaluationPeriods\":1,\"DatapointsToAlarm\":1,\"ComparisonOperator\":\"GreaterThanThreshold\",\"Threshold\":580.0,\"TreatMissingData\":\"notBreaching\",\"EvaluateLowSampleCountPercentile\":\"\"}}",
+  "attributes": {
+    "ApproximateReceiveCount": "1",
+    "SentTimestamp": "1758041957206",
+    "SenderId": "AIDAIT2UOQQY3AUEKVGXU",
+    "ApproximateFirstReceiveTimestamp": "1758041957230"
   },
-  messageAttributes: {},
-  md5OfMessageAttributes: null,
-  md5OfBody: '7702f0e0353d0928de622d63459a8c4e',
-  eventSource: 'aws:sqs',
-  eventSourceARN: 'arn:aws:sqs:us-east-1:308535385114:alerting-dev-alerts',
-  awsRegion: 'us-east-1'
+  "messageAttributes": {},
+  "md5OfMessageAttributes": null,
+  "md5OfBody": "7702f0e0353d0928de622d63459a8c4e",
+  "eventSource": "aws:sqs",
+  "eventSourceARN": "arn:aws:sqs:us-east-1:308535385114:alerting-dev-alerts",
+  "awsRegion": "us-east-1"
 }
 ```
 
@@ -102,30 +102,30 @@ Extracting just the body of the message, it looks like:
 The message Grafana used to validate that the notification can be emitted
 ```json
 {
-  messageId: 'e3e99ee4-b104-4da0-8e70-611d7506c9f4',
-  receiptHandle: 'AQEB...A==',
-  body: `{"receiver":"test","status":"firing","alerts":[{"status":"firing","labels":{"alertname":"TestAlert","instance":"Grafana"},"annotations":{"summary":"Notification test"},"startsAt":"2025-09-16T17:11:19.283071388Z","endsAt":"0001-01-01T00:00:00Z","generatorURL":"","fingerprint":"57c6d9296de2ad39","silenceURL":"https://alertmanager-prod-us-west-0.grafana.net/alertmanager/alerting/silence/new?alertmanager=grafana\\u0026matcher=alertname%3DTestAlert\\u0026matcher=instance%3DGrafana","dashboardURL":"","panelURL":"","values":null,"valueString":"[ metric='foo' labels={instance=bar} value=10 ]"}],"groupLabels":{"alertname":"TestAlert","instance":"Grafana"},"commonLabels":{"alertname":"TestAlert","instance":"Grafana"},"commonAnnotations":{"summary":"Notification test"},"externalURL":"https://alertmanager-prod-us-west-0.grafana.net/alertmanager","version":"1","groupKey":"test-57c6d9296de2ad39-1758042679","truncatedAlerts":0,"orgId":1,"title":"[FIRING:1] TestAlert Grafana ","state":"alerting","message":"**Firing**\\n\\nValue: [no value]\\nLabels:\\n - alertname = TestAlert\\n - instance = Grafana\\nAnnotations:\\n - summary = Notification test\\nSilence: https://alertmanager-prod-us-west-0.grafana.net/alertmanager/alerting/silence/new?alertmanager=grafana\\u0026matcher=alertname%3DTestAlert\\u0026matcher=instance%3DGrafana\\n"}`,
-  attributes: {
-    ApproximateReceiveCount: '1',
-    AWSTraceHeader: 'Root=1-68c99a37-6b1ff3af07da0ed107bc6f40;Parent=2d29ef145f52370c;Sampled=0;Lineage=1:0f0fba18:0',
-    SentTimestamp: '1758042679634',
-    SenderId: 'AIDAIT2UOQQY3AUEKVGXU',
-    ApproximateFirstReceiveTimestamp: '1758042679638'
-  },
-  messageAttributes: {
-    source: {
-      stringValue: 'grafana',
-      binaryValue: null,
-      stringListValues: [],
-      binaryListValues: [],
-      dataType: 'String'
-    }
-  },
-  md5OfMessageAttributes: '6c40e046d8d6cbe4b3b008430a8089d7',
-  md5OfBody: '10109a2cc1f8ca395a43130e3d7ba950',
-  eventSource: 'aws:sqs',
-  eventSourceARN: 'arn:aws:sqs:us-east-1:308535385114:alerting-dev-alerts',
-  awsRegion: 'us-east-1'
+    "messageId": "e3e99ee4-b104-4da0-8e70-611d7506c9f4",
+    "receiptHandle": "AQEB...A==",
+    "body": "{\"receiver\":\"test\",\"status\":\"firing\",\"alerts\":[{\"status\":\"firing\",\"labels\":{\"alertname\":\"TestAlert\",\"instance\":\"Grafana\"},\"annotations\":{\"summary\":\"Notification test\"},\"startsAt\":\"2025-09-16T17:11:19.283071388Z\",\"endsAt\":\"0001-01-01T00:00:00Z\",\"generatorURL\":\"\",\"fingerprint\":\"57c6d9296de2ad39\",\"silenceURL\":\"https://alertmanager-prod-us-west-0.grafana.net/alertmanager/alerting/silence/new?alertmanager=grafana\\u0026matcher=alertname%3DTestAlert\\u0026matcher=instance%3DGrafana\",\"dashboardURL\":\"\",\"panelURL\":\"\",\"values\":null,\"valueString\":\"[ metric='foo' labels={instance=bar} value=10 ]\"}],\"groupLabels\":{\"alertname\":\"TestAlert\",\"instance\":\"Grafana\"},\"commonLabels\":{\"alertname\":\"TestAlert\",\"instance\":\"Grafana\"},\"commonAnnotations\":{\"summary\":\"Notification test\"},\"externalURL\":\"https://alertmanager-prod-us-west-0.grafana.net/alertmanager\",\"version\":\"1\",\"groupKey\":\"test-57c6d9296de2ad39-1758042679\",\"truncatedAlerts\":0,\"orgId\":1,\"title\":\"[FIRING:1] TestAlert Grafana \",\"state\":\"alerting\",\"message\":\"**Firing**\\n\\nValue: [no value]\\nLabels:\\n - alertname = TestAlert\\n - instance = Grafana\\nAnnotations:\\n - summary = Notification test\\nSilence: https://alertmanager-prod-us-west-0.grafana.net/alertmanager/alerting/silence/new?alertmanager=grafana\\u0026matcher=alertname%3DTestAlert\\u0026matcher=instance%3DGrafana\\n\"}",
+    "attributes": {
+        "ApproximateReceiveCount": "1",
+        "AWSTraceHeader": "Root=1-68c99a37-6b1ff3af07da0ed107bc6f40;Parent=2d29ef145f52370c;Sampled=0;Lineage=1:0f0fba18:0",
+        "SentTimestamp": "1758042679634",
+        "SenderId": "AIDAIT2UOQQY3AUEKVGXU",
+        "ApproximateFirstReceiveTimestamp": "1758042679638"
+    },
+    "messageAttributes": {
+        "source": {
+            "stringValue": "grafana",
+            "binaryValue": null,
+            "stringListValues": [],
+            "binaryListValues": [],
+            "dataType": "String"
+        }
+    },
+    "md5OfMessageAttributes": "6c40e046d8d6cbe4b3b008430a8089d7",
+    "md5OfBody": "10109a2cc1f8ca395a43130e3d7ba950",
+    "eventSource": "aws:sqs",
+    "eventSourceARN": "arn:aws:sqs:us-east-1:308535385114:alerting-dev-alerts",
+    "awsRegion": "us-east-1"
 }
 ```
 
