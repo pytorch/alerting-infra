@@ -81,6 +81,7 @@ export class CloudWatchTransformer extends BaseTransformer {
       state,
       title,
       description: descriptionParsed.description || undefined,
+      summary: undefined, // CloudWatch doesn't have a summary concept like Grafana
       reason: this.sanitizeString(alarmData.NewStateReason || "", 1000),
       priority,
       occurred_at: occurredAt,

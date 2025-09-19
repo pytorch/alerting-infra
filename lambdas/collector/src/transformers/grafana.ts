@@ -64,6 +64,7 @@ export class GrafanaTransformer extends BaseTransformer {
       runbook_url: this.validateUrl(annotations.runbook_url || labels.runbook_url || ""),
       dashboard_url: this.validateUrl(alert.dashboardURL || alert.panelURL || ""),
       source_url: this.validateUrl(alert.generatorURL || rawPayload.generatorURL || ""),
+      silence_url: this.validateUrl(alert.silenceURL || ""),
     };
 
     return {
@@ -72,8 +73,9 @@ export class GrafanaTransformer extends BaseTransformer {
       source: "grafana",
       state,
       title,
-      description: this.sanitizeString(annotations.description || annotations.summary || "", 1500),
-      reason: this.sanitizeString(rawPayload.message || "", 2000),
+      description: this.sanitizeString(annotations.description || "", 1500),
+      summary: this.sanitizeString(annotations.summary || "", 1500),
+      reason: this.sanitizeString(alert.valueString || "", 500),
       priority,
       occurred_at: occurredAt,
       team,

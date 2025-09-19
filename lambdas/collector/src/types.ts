@@ -31,6 +31,7 @@ export interface AlertLinks {
   runbook_url?: string; // chosen via best-link strategy
   dashboard_url?: string; // if Grafana
   source_url?: string; // console or panel link
+  silence_url?: string; // provider-specific silence/mute link (Grafana silenceURL)
 }
 
 // Canonical AlertEvent schema (persisted key fields also mirrored in DynamoDB state)
@@ -40,7 +41,8 @@ export interface AlertEvent {
   source: "grafana" | "cloudwatch";
   state: "FIRING" | "RESOLVED";
   title: string; // normalized title (rule or alarm name)
-  description?: string; // optional summary text from alert description
+  description?: string; // optional text from alert description
+  summary?: string; // high-level summary for prominent display
   reason?: string; // provider-specific reason/message (NewStateReason for CloudWatch, message for Grafana)
   priority: "P0" | "P1" | "P2" | "P3"; // single canonical concept; no severity field
   occurred_at: string; // provider state change time (ISO8601)
@@ -64,6 +66,7 @@ export interface AlertState {
   last_provider_state_at: string; // ISO8601
   first_seen_at: string; // ISO8601
   last_seen_at: string; // ISO8601
+  last_comment_at?: string; // ISO8601 - last time comment was added (nullable)
   manually_closed: boolean;
   manually_closed_at?: string; // ISO8601 (nullable)
   schema_version: number; // mirrors event

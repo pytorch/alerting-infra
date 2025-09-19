@@ -25,26 +25,30 @@ async function createGitHubIssueForAlert(
 ): Promise<{ success: boolean; issueNumber?: number; error?: string }> {
   try {
     const issueTitle = `[${alertEvent.priority}] ${alertEvent.title}`;
+
     const issueBody = [
-      `**Alert Details**`,
-      `- **Team**: ${alertEvent.team}`,
-      `- **Priority**: ${alertEvent.priority}`,
-      `- **Source**: ${alertEvent.source}`,
-      `- **State**: ${alertEvent.state}`,
-      `- **Occurred At**: ${alertEvent.occurred_at}`,
-      alertEvent.description ? `- **Description**: ${alertEvent.description}` : "",
-      alertEvent.reason ? `- **Reason**: ${alertEvent.reason}` : "",
-      alertEvent.links?.runbook_url ? `- **Runbook**: ${alertEvent.links.runbook_url}` : "",
-      alertEvent.links?.dashboard_url ? `- **Dashboard**: ${alertEvent.links.dashboard_url}` : "",
-      alertEvent.links?.source_url ? `- **View Alert**: ${alertEvent.links.source_url}` : "",
-      "",
-      `**Fingerprint**: \`${fingerprint}\``,
-      "",
-      "---",
-      "```json",
-      JSON.stringify(alertEvent.raw_provider, null, 2),
-      "```"
-    ].filter(Boolean).join("\n");
+      // Add summary at the top if available
+      alertEvent.summary ? `> **${alertEvent.summary}**\n` : "",
+      `**Alert Details**\n`,
+      `- **Team**: ${alertEvent.team}\n`,
+      `- **Priority**: ${alertEvent.priority}\n`,
+      `- **Source**: ${alertEvent.source}\n`,
+      `- **State**: ${alertEvent.state}\n`,
+      `- **Occurred At**: ${alertEvent.occurred_at}\n`,
+      alertEvent.description ? `- **Description**: ${alertEvent.description}\n` : "",
+      alertEvent.reason ? `- **Reason**: ${alertEvent.reason}\n` : "",
+      alertEvent.links?.runbook_url ? `- **Runbook**: ${alertEvent.links.runbook_url}\n` : "",
+      alertEvent.links?.dashboard_url ? `- **Dashboard**: ${alertEvent.links.dashboard_url}\n` : "",
+      alertEvent.links?.source_url ? `- **View Alert**: ${alertEvent.links.source_url}\n` : "",
+      alertEvent.links?.silence_url ? `- **Silence Alert**: ${alertEvent.links.silence_url}\n` : "",
+      "\n",
+      `- **Fingerprint**: \`${fingerprint}\`\n`,
+      "\n",
+      "---\n",
+      "```json\n",
+      JSON.stringify(alertEvent.raw_provider, null, 2) + "\n",
+      "```\n"
+    ].filter(Boolean).join("");
 
     // Create labels based on priority, team, source, and default area label
     const labels = [
