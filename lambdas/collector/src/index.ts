@@ -43,13 +43,14 @@ async function createGitHubIssueForAlert(
       alertEvent.links?.silence_url ? `- **Silence Alert**: ${alertEvent.links.silence_url}\n` : "",
       `- **Source**: ${alertEvent.source}\n`,
       `- **Fingerprint**: \`${fingerprint}\`\n`,
-      "\n",
-      "---\n",
-      "#### Raw Provider Payload\n",
-      "Temporary section for debugging\n",
-      "```json\n",
-      JSON.stringify(alertEvent.raw_provider, null, 2) + "\n",
-      "```\n"
+      // TODO: Delete this debugging comment block once this code is stable.
+      // "\n",
+      // "---\n",
+      // "#### Raw Provider Payload\n",
+      // "Temporary section for debugging\n",
+      // "```json\n",
+      // JSON.stringify(alertEvent.raw_provider, null, 2) + "\n",
+      // "```\n"
     ].filter(Boolean).join("");
 
     // Create labels based on priority, team, source, and default area label
