@@ -16,6 +16,7 @@ const processor = new AlertProcessor();
 const stateManager = tableName ? new AlertStateManager(ddbClient, tableName) : null;
 const githubClient = new GitHubClient(githubRepo, githubAppSecretId, 10);
 
+
 /**
  * Create a GitHub issue for an alert
  */
@@ -51,11 +52,12 @@ async function createGitHubIssueForAlert(
     ].filter(Boolean).join("");
 
     // Create labels based on priority, team, source, and default area label
+    // Note: Team names are already normalized (spaces escaped) by transformers
     const labels = [
       "area:alerting", // Default label for all alerts
-      `Pri: ${alertEvent.priority}`,
-      `Team: ${alertEvent.team}`,
-      `Source: ${alertEvent.source}`
+      `Pri:${alertEvent.priority}`,
+      `Team:${alertEvent.team}`,
+      `Source:${alertEvent.source}`
     ];
 
     const issueNumber = await githubClient.createGithubIssue(issueTitle, issueBody, labels);
@@ -214,9 +216,9 @@ export const handler: SQSHandler = async (event) => {
           const wouldCreateIssue = `[${alertEvent.priority}] ${alertEvent.title}`;
           const wouldCreateLabels = [
             "area:alerting",
-            `Pri: ${alertEvent.priority}`,
-            `Team: ${alertEvent.team}`,
-            `Source: ${alertEvent.source}`
+            `Pri:${alertEvent.priority}`,
+            `Team:${alertEvent.team}`,
+            `Source:${alertEvent.source}`
           ];
           console.log(`   Title: ${wouldCreateIssue}`);
           console.log(`   Labels: ${wouldCreateLabels.join(", ")}`);

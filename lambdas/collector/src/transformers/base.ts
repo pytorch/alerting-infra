@@ -95,7 +95,8 @@ export abstract class BaseTransformer {
     if (!input || !input.trim()) {
       throw new Error("Team field is empty or missing");
     }
-    return input.trim().toLowerCase();
+    // Replaces spaces with hyphens for tooling compatibility
+    return input.trim().toLowerCase().replace(/\s+/g, '-');
   }
 
   // Safe string extraction with fallback

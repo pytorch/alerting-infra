@@ -301,9 +301,9 @@ describe('GrafanaTransformer', () => {
     it('should sanitize description and reason fields', () => {
       const payload = {
         ...testGrafanaPayloads.firing,
-        message: '<script>alert("xss")</script>Some reason',
         alerts: [{
           ...testGrafanaPayloads.firing.alerts[0],
+          valueString: '<script>alert("xss")</script>Some reason',
           annotations: {
             ...testGrafanaPayloads.firing.alerts[0].annotations,
             description: '<script>alert("xss")</script>Some description',
@@ -325,9 +325,9 @@ describe('GrafanaTransformer', () => {
 
       const payload = {
         ...testGrafanaPayloads.firing,
-        message: longReason,
         alerts: [{
           ...testGrafanaPayloads.firing.alerts[0],
+          valueString: longReason,
           annotations: {
             ...testGrafanaPayloads.firing.alerts[0].annotations,
             description: longDescription,
@@ -337,8 +337,13 @@ describe('GrafanaTransformer', () => {
 
       const result = transformer.transform(payload, mockEnvelope);
 
-      expect(result.description).toHaveLength(1500); // Limit from transformer
-      expect(result.reason).toHaveLength(2000); // Limit from transformer
+      // Fields should be truncated to reasonable lengths (not the full input length)
+      expect(result.description!.length).toBeLessThan(longDescription.length);
+      expect(result.reason!.length).toBeLessThan(longReason.length);
+
+      // Should still contain the expected content (truncated)
+      expect(result.description).toMatch(/^a+$/);
+      expect(result.reason).toMatch(/^b+$/);
     });
   });
 

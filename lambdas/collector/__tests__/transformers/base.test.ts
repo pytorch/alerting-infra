@@ -171,7 +171,11 @@ describe('BaseTransformer', () => {
     it('should extract and normalize team names', () => {
       expect(transformer['extractTeam']('DevOps')).toBe('devops');
       expect(transformer['extractTeam']('DEV-INFRA')).toBe('dev-infra');
-      expect(transformer['extractTeam']('Platform Team')).toBe('platform team');
+    });
+
+    it('should replace spaces with hyphens for tooling compatibility', () => {
+      expect(transformer['extractTeam']('Platform Team')).toBe('platform-team');
+      expect(transformer['extractTeam'](' Multi  Word Team ')).toBe('multi-word-team');
     });
 
     it('should trim whitespace', () => {
