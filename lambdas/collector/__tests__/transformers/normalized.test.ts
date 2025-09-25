@@ -19,7 +19,7 @@ describe("NormalizedTransformer", () => {
     identity: {
       account_id: "123456789012",
       region: "us-west-2",
-      rule_id: "cpu-high-alert",
+      alarm_id: "cpu-high-alert",
     },
     links: {
       runbook_url: "https://wiki.company.com/runbooks/cpu",
@@ -32,9 +32,11 @@ describe("NormalizedTransformer", () => {
   };
 
   const mockEnvelope: Envelope = {
+    received_at: "2024-01-15T10:30:00.000Z",
+    ingest_topic: "test-topic",
+    ingest_region: "us-east-1",
+    delivery_attempt: 1,
     event_id: "test-event-123",
-    source: "normalized",
-    timestamp: "2024-01-15T10:30:00.000Z",
   };
 
   describe("transform", () => {
@@ -223,7 +225,7 @@ describe("NormalizedTransformer", () => {
 
       try {
         transformer.transform(invalidAlert, mockEnvelope);
-        fail("Expected validation error");
+        expect.fail("Expected validation error");
       } catch (error) {
         const errorMessage = (error as Error).message;
         expect(errorMessage).toMatch(/AlertEvent validation failed/);

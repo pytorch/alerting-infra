@@ -74,7 +74,7 @@ export class CloudWatchTransformer extends BaseTransformer {
       region:
         this.extractRegionFromArn(alarmData.AlarmArn) ||
         this.normalizeRegion(alarmData.Region || ""),
-      alarm_arn: this.safeString(alarmData.AlarmArn),
+      alarm_id: this.safeString(alarmData.AlarmArn),
     };
 
     // Build links with URL validation

@@ -10,9 +10,11 @@ describe("CloudWatchTransformer", () => {
   beforeEach(() => {
     transformer = new CloudWatchTransformer();
     mockEnvelope = {
+      received_at: "2025-09-16T12:00:00.000Z",
+      ingest_topic: "test-topic",
+      ingest_region: "us-east-1",
+      delivery_attempt: 1,
       event_id: "test-event-123",
-      source: "cloudwatch",
-      timestamp: "2025-09-16T12:00:00.000Z",
     };
   });
 
@@ -33,7 +35,7 @@ describe("CloudWatchTransformer", () => {
         identity: {
           account_id: "123456789012",
           region: "us-east-1",
-          alarm_arn: "arn:aws:cloudwatch:us-east-1:123456789012:alarm:HighCPU",
+          alarm_id: "arn:aws:cloudwatch:us-east-1:123456789012:alarm:HighCPU",
         },
         links: {
           runbook_url: "https://runbooks.example.com/cpu",

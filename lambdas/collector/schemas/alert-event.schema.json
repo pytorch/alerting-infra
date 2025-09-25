@@ -77,16 +77,10 @@
           "pattern": "^[a-zA-Z0-9_-]+$",
           "description": "AWS region or equivalent"
         },
-        "alarm_arn": {
+        "alarm_id": {
           "type": "string",
           "maxLength": 1024,
-          "pattern": "^arn:aws:cloudwatch:",
-          "description": "CloudWatch alarm ARN (if applicable)"
-        },
-        "rule_id": {
-          "type": "string",
-          "maxLength": 255,
-          "description": "Alert rule or monitor ID"
+          "description": "Alarm identifier (CloudWatch alarm ARN, Grafana rule ID, etc.)"
         }
       },
       "additionalProperties": false,
@@ -153,7 +147,7 @@
       "identity": {
         "account_id": "123456789012",
         "region": "us-west-2",
-        "rule_id": "cpu-high-prod-web"
+        "alarm_id": "cpu-high-prod-web"
       },
       "links": {
         "runbook_url": "https://wiki.company.com/runbooks/high-cpu",

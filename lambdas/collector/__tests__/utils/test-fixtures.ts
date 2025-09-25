@@ -38,7 +38,7 @@ export const testAlertEvents = {
     team: "dev-infra",
     identity: {
       account_id: "1",
-      rule_id: "test-rule-123",
+      alarm_id: "test-rule-123",
     },
     links: {
       runbook_url: "https://runbooks.example.com/test",
@@ -60,7 +60,7 @@ export const testAlertEvents = {
     team: "dev-infra",
     identity: {
       account_id: "1",
-      rule_id: "test-rule-123",
+      alarm_id: "test-rule-123",
     },
     links: {
       runbook_url: "https://runbooks.example.com/test",
@@ -82,7 +82,7 @@ export const testAlertEvents = {
     team: "platform",
     identity: {
       account_id: "123456789012",
-      rule_id: "arn:aws:cloudwatch:us-east-1:123456789012:alarm:HighCPU",
+      alarm_id: "arn:aws:cloudwatch:us-east-1:123456789012:alarm:HighCPU",
     },
     links: {
       source_url:

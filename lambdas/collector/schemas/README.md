@@ -42,7 +42,7 @@ const alert = {
   priority: "P1",
   occurred_at: "2024-01-15T10:30:00.000Z",
   team: "platform-team",
-  identity: { account_id: "123456789012", rule_id: "cpu-high" },
+  identity: { account_id: "123456789012", alarm_id: "cpu-high" },
   links: { runbook_url: "https://wiki.company.com/cpu-runbook" },
 };
 
@@ -72,7 +72,7 @@ alert = {
     "priority": "P1",
     "occurred_at": "2024-01-15T10:30:00.000Z",
     "team": "platform-team",
-    "identity": {"account_id": "123456789012", "rule_id": "cpu-high"},
+    "identity": {"account_id": "123456789012", "alarm_id": "cpu-high"},
     "links": {"runbook_url": "https://wiki.company.com/cpu-runbook"}
 }
 
@@ -105,7 +105,7 @@ func main() {
         "priority":       "P1",
         "occurred_at":    "2024-01-15T10:30:00.000Z",
         "team":           "platform-team",
-        "identity":       map[string]interface{}{"account_id": "123456789012", "rule_id": "cpu-high"},
+        "identity":       map[string]interface{}{"account_id": "123456789012", "alarm_id": "cpu-high"},
         "links":          map[string]interface{}{"runbook_url": "https://wiki.company.com/cpu-runbook"},
     }
 

@@ -10,9 +10,11 @@ describe("GrafanaTransformer", () => {
   beforeEach(() => {
     transformer = new GrafanaTransformer();
     mockEnvelope = {
+      received_at: "2025-09-16T12:00:00.000Z",
+      ingest_topic: "test-topic",
+      ingest_region: "us-east-1",
+      delivery_attempt: 1,
       event_id: "test-event-123",
-      source: "grafana",
-      timestamp: "2025-09-16T12:00:00.000Z",
     };
   });
 
@@ -33,7 +35,7 @@ describe("GrafanaTransformer", () => {
         team: "dev-infra",
         identity: {
           account_id: "1",
-          rule_id: "abc123",
+          alarm_id: "abc123",
         },
         links: {
           runbook_url: "https://runbooks.example.com/test",
@@ -168,7 +170,7 @@ describe("GrafanaTransformer", () => {
 
       expect(result.identity).toMatchObject({
         account_id: "42",
-        rule_id: "unique-fingerprint-123",
+        alarm_id: "unique-fingerprint-123",
       });
     });
 

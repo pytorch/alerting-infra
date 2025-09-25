@@ -16,7 +16,7 @@ describe("Schema Validator", () => {
     occurred_at: "2024-01-15T10:30:00.000Z",
     team: "test-team",
     identity: {
-      rule_id: "test-rule",
+      alarm_id: "test-rule",
     },
     links: {
       runbook_url: "https://example.com/runbook",
@@ -46,8 +46,7 @@ describe("Schema Validator", () => {
         identity: {
           account_id: "123456789012",
           region: "us-west-2",
-          alarm_arn: "arn:aws:cloudwatch:us-west-2:123456789012:alarm:test",
-          rule_id: "rule-123",
+          alarm_id: "arn:aws:cloudwatch:us-west-2:123456789012:alarm:test",
         },
         links: {
           runbook_url: "https://example.com/runbook",
