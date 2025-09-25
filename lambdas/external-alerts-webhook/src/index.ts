@@ -3,29 +3,29 @@ import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import { createHash, timingSafeEqual } from "crypto";
 
-interface WebhookSecret {
-  grafana_webhook_token: string;
+interface WebhookSecrets {
+  [header: string]: string;
 }
 
-interface CachedSecret {
-  token: string;
+interface CachedSecrets {
+  secrets: WebhookSecrets;
   expiresAt: number;
 }
 
 const sns = new SNSClient({});
-const secrets = new SecretsManagerClient({});
+const secretsManager = new SecretsManagerClient({});
 const TOPIC_ARN = process.env.TOPIC_ARN!;
 const WEBHOOK_SECRET_ID = process.env.WEBHOOK_SECRET_ID!;
 
-// Cache the token for 5 minutes to avoid repeated Secrets Manager calls
-let cachedSecret: CachedSecret | null = null;
+// Cache the secrets for 5 minutes to avoid repeated Secrets Manager calls
+let cachedSecrets: CachedSecrets | null = null;
 
-async function getWebhookToken(): Promise<string> {
+async function getWebhookSecrets(): Promise<WebhookSecrets> {
   const now = Math.floor(Date.now() / 1000);
 
-  // Return cached token if still valid (5-minute TTL)
-  if (cachedSecret && cachedSecret.expiresAt > now) {
-    return cachedSecret.token;
+  // Return cached secrets if still valid (5-minute TTL)
+  if (cachedSecrets && cachedSecrets.expiresAt > now) {
+    return cachedSecrets.secrets;
   }
 
   if (!WEBHOOK_SECRET_ID) {
@@ -33,7 +33,7 @@ async function getWebhookToken(): Promise<string> {
   }
 
   try {
-    const response = await secrets.send(
+    const response = await secretsManager.send(
       new GetSecretValueCommand({ SecretId: WEBHOOK_SECRET_ID })
     );
 
@@ -41,22 +41,22 @@ async function getWebhookToken(): Promise<string> {
       throw new Error("Empty secret string from Secrets Manager");
     }
 
-    const secret = JSON.parse(response.SecretString) as WebhookSecret;
-    if (!secret.grafana_webhook_token) {
-      throw new Error("Missing grafana_webhook_token in secret");
+    const secrets = JSON.parse(response.SecretString) as WebhookSecrets;
+    if (!secrets || Object.keys(secrets).length === 0) {
+      throw new Error("No webhook secrets found in secret store");
     }
 
-    // Cache the token for 5 minutes
-    cachedSecret = {
-      token: secret.grafana_webhook_token,
+    // Cache the secrets for 5 minutes
+    cachedSecrets = {
+      secrets,
       expiresAt: now + 300, // 5 minutes
     };
 
-    return secret.grafana_webhook_token;
+    return secrets;
   } catch (error) {
     // Clear cache on error to force refresh next time
-    cachedSecret = null;
-    console.error("Failed to load webhook token from Secrets Manager", {
+    cachedSecrets = null;
+    console.error("Failed to load webhook secrets from Secrets Manager", {
       error: error instanceof Error ? error.message : String(error),
       secretId: WEBHOOK_SECRET_ID,
     });
@@ -70,11 +70,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       Object.entries(event.headers || {}).map(([k, v]) => [k.toLowerCase(), v ?? ""]),
     );
 
-    const providedToken = headers["x-grafana-token"] || "";
-    const expectedToken = await getWebhookToken();
+    const webhookSecrets = await getWebhookSecrets();
 
-    // Use timing-safe comparison to prevent timing attacks
-    if (!isValidToken(providedToken, expectedToken)) {
+    // Check if any of the configured headers match with valid tokens
+    if (!isValidRequest(headers, webhookSecrets)) {
       return { statusCode: 401, body: "unauthorized" };
     }
 
@@ -99,6 +98,17 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 
 function digest(input: string): Buffer {
   return createHash("sha256").update(input, "utf8").digest();
+}
+
+// Check if request has valid authentication using any configured header/token pair
+function isValidRequest(headers: Record<string, string>, webhookSecrets: WebhookSecrets): boolean {
+  for (const [headerName, expectedToken] of Object.entries(webhookSecrets)) {
+    const providedToken = headers[headerName.toLowerCase()];
+    if (providedToken && isValidToken(providedToken, expectedToken)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // Timing-safe token comparison to prevent timing attacks

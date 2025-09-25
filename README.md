@@ -162,7 +162,7 @@ aws secretsmanager create-secret \
 
 ### Webhook Configuration
 
-**Grafana Webhook Token Setup**
+**Webhook Token Setup**
 
 **Important**: The webhook secret for each environment must be created **before** deploying the infrastructure. Terraform references it but doesn't manage it.
 
@@ -179,7 +179,7 @@ echo "Generated token: $TOKEN"
 aws secretsmanager create-secret \
   --name "alerting-$ENV-webhook-secrets" \
   --description "Authentication tokens for external webhook notifications" \
-  --secret-string "{\"grafana_webhook_token\": \"$TOKEN\"}"
+  --secret-string "{\"x-grafana-token\": \"$TOKEN\"}"
 ```
 
 3. **Deploy infrastructure**:
@@ -189,16 +189,89 @@ make aws-apply-dev
 ```
 
 4. **Configure Grafana notification policy** with:
-   - **URL**: `terraform output -raw external_alerts_webhook_url`
+   - **URL**: Get with `terraform output -raw external_alerts_webhook_url` (after `make aws-init-dev` or `make aws-init-prod`)
    - **Method**: POST
    - **Header**: `X-Grafana-Token: <your-generated-token>`
 
 **Note**: The secret supports multiple webhook tokens. Future alert sources can be added like:
 ```json
 {
-  "grafana_webhook_token": "token-for-grafana",
-  "other_service_webhook_token": "token-for-other-service",
+  "x-grafana-token": "token-for-grafana",
+  "x-pagerduty-signature": "token-for-pagerduty",
 }
+```
+
+### Adding New Webhook Emitters
+
+To onboard a new webhook emitter (e.g., PagerDuty, Datadog, custom services) to the alerting system:
+
+#### 1. Update Webhook Authentication
+Add the new service's authentication header and token to the webhook secret:
+
+```bash
+# Get current secret value
+CURRENT_SECRET=$(aws secretsmanager get-secret-value \
+  --secret-id "alerting-$ENV-webhook-secrets" \
+  --query SecretString --output text)
+
+# Add new header/token pair (example for PagerDuty)
+# Generated the token via: `openssl rand -base64 64`
+UPDATED_SECRET=$(echo "$CURRENT_SECRET" | jq '. + {"x-pagerduty-signature": "your-pagerduty-webhook-secret"}')
+
+# Update the secret
+aws secretsmanager update-secret \
+  --secret-id "alerting-$ENV-webhook-secrets" \
+  --secret-string "$UPDATED_SECRET"
+```
+
+#### 2. Configure the New Service
+Point your new service webhook to the alerting system endpoint:
+
+```bash
+# Get webhook URL (make sure you've initialized the correct environment first)
+# For dev environment:
+make aws-init-dev
+cd infra && terraform output -raw external_alerts_webhook_url
+
+# For prod environment:
+make aws-init-prod
+cd infra && terraform output -raw external_alerts_webhook_url
+```
+
+Configure your service to send POST requests to this URL with the appropriate authentication header.
+
+#### 3. Add Alert Transformation (if needed)
+If the new service uses a different payload format than existing supported sources (Grafana/CloudWatch), you may need to:
+
+1. **Add a new transformer** in `lambdas/collector/src/transformers/`
+2. **Update source detection** in the collector Lambda to recognize the new format
+3. **Test the transformation** with sample payloads
+
+#### 4. Test the Integration
+```bash
+# Monitor logs
+make logs-dev
+
+# Send a test webhook from your new service
+# Check that alerts are processed and GitHub issues are created correctly
+```
+
+#### Example: Adding PagerDuty Webhooks
+```bash
+# 1. Add PagerDuty webhook secret
+aws secretsmanager update-secret \
+  --secret-id "alerting-dev-webhook-secrets" \
+  --secret-string '{
+    "x-grafana-token": "existing-grafana-token",
+    "x-pagerduty-signature": "your-pagerduty-secret"
+  }'
+
+# 2. Configure PagerDuty webhook
+# URL: https://your-webhook-url/webhook
+# Headers: X-PagerDuty-Signature: your-pagerduty-secret
+# Method: POST
+
+# 3. Test with a PagerDuty incident to verify processing
 ```
 
 ### Alert Source Configuration

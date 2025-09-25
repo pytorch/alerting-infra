@@ -93,9 +93,24 @@ The following commands are pre-approved for this project:
 - **Utilities** (`utils/`): Rate limiter, circuit breaker, common functions
 
 #### Webhook Lambda (`lambdas/external-alerts-webhook/src/`)
-- **Handler** (`index.ts`): Secure Grafana webhook endpoint
-- **Authentication**: Timing-safe token comparison
+- **Handler** (`index.ts`): Secure webhook endpoint for multiple alert sources
+- **Authentication**: Flexible header/token validation with timing-safe comparison
 - **SNS Publishing**: Forwards validated payloads to alert processing
+
+##### Webhook Authentication
+The webhook endpoint supports flexible authentication using header/token pairs stored in AWS Secrets Manager:
+
+- **Secret Format**: Secrets are stored as JSON with header names as keys and tokens as values
+  ```json
+  {
+    "x-grafana-token": "your-grafana-secret-token",
+    "x-custom-webhook": "your-custom-webhook-token"
+  }
+  ```
+- **Request Validation**: Incoming requests are authenticated if any configured header is present with the correct token value
+- **Security**: Uses timing-safe comparison to prevent timing attacks
+- **Caching**: Secrets are cached for 5 minutes to reduce Secrets Manager API calls
+- **Multiple Sources**: Support for different webhook sources (Grafana, PagerDuty, etc.) with different header token-based methods
 
 ### Alert Schema & Types
 
@@ -269,7 +284,8 @@ All changes should maintain security best practices including:
 - **Schema Validation**: Runtime validation against TypeScript interfaces
 
 ### Authentication & Authorization
-- **Timing-Safe Comparisons**: Prevent timing attack vulnerabilities
+- **Flexible Webhook Authentication**: Support multiple webhook sources with header/token pairs stored in AWS Secrets Manager
+- **Timing-Safe Comparisons**: Prevent timing attack vulnerabilities across all authentication methods
 - **GitHub App Tokens**: Use installation tokens, not personal access
 - **Secret Rotation**: Support for GitHub App key rotation
 - **Least Privilege**: Minimal IAM permissions with explicit resources
