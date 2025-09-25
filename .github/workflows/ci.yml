@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        lambda: [collector, external-alerts-webhook]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'yarn'
+        cache-dependency-path: 'lambdas/${{ matrix.lambda }}/yarn.lock'
+
+    - name: Install dependencies
+      run: |
+        cd lambdas/${{ matrix.lambda }}
+        yarn install --frozen-lockfile
+
+    - name: Run lint
+      run: |
+        cd lambdas/${{ matrix.lambda }}
+        yarn lint
+
+    - name: Run format check
+      run: |
+        cd lambdas/${{ matrix.lambda }}
+        yarn format:check
+
+    - name: Run tests
+      run: |
+        cd lambdas/${{ matrix.lambda }}
+        if [ -f "package.json" ] && grep -q '"test"' package.json; then
+          yarn test
+        else
+          echo "No tests found for ${{ matrix.lambda }}"
+        fi
