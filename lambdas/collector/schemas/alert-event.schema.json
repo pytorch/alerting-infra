@@ -64,10 +64,12 @@
     "identity": {
       "type": "object",
       "properties": {
-        "aws_account": {
+        "account_id": {
           "type": "string",
-          "pattern": "^[0-9]{12}$",
-          "description": "AWS account ID (12 digits)"
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "Unified account identifier (AWS account ID, organization ID, tenant ID, etc.)"
         },
         "region": {
           "type": "string",
@@ -80,11 +82,6 @@
           "maxLength": 1024,
           "pattern": "^arn:aws:cloudwatch:",
           "description": "CloudWatch alarm ARN (if applicable)"
-        },
-        "org_id": {
-          "type": "string",
-          "maxLength": 100,
-          "description": "Organization ID (for Grafana or other multi-tenant systems)"
         },
         "rule_id": {
           "type": "string",
@@ -154,7 +151,7 @@
       "occurred_at": "2024-01-15T10:30:00.000Z",
       "team": "platform-team",
       "identity": {
-        "aws_account": "123456789012",
+        "account_id": "123456789012",
         "region": "us-west-2",
         "rule_id": "cpu-high-prod-web"
       },

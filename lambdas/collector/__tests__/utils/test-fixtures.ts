@@ -37,7 +37,7 @@ export const testAlertEvents = {
     occurred_at: "2025-09-16T12:00:00.000Z",
     team: "dev-infra",
     identity: {
-      org_id: "1",
+      account_id: "1",
       rule_id: "test-rule-123",
     },
     links: {
@@ -59,7 +59,7 @@ export const testAlertEvents = {
     occurred_at: "2025-09-16T12:05:00.000Z",
     team: "dev-infra",
     identity: {
-      org_id: "1",
+      account_id: "1",
       rule_id: "test-rule-123",
     },
     links: {
@@ -81,7 +81,7 @@ export const testAlertEvents = {
     occurred_at: "2025-09-16T12:00:00.000Z",
     team: "platform",
     identity: {
-      org_id: "123456789012",
+      account_id: "123456789012",
       rule_id: "arn:aws:cloudwatch:us-east-1:123456789012:alarm:HighCPU",
     },
     links: {

@@ -17,7 +17,7 @@ describe("NormalizedTransformer", () => {
     occurred_at: "2024-01-15T10:30:00.000Z",
     team: "platform-team",
     identity: {
-      aws_account: "123456789012",
+      account_id: "123456789012",
       region: "us-west-2",
       rule_id: "cpu-high-alert",
     },

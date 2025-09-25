@@ -20,8 +20,8 @@ function generateCloudWatchFingerprint(alertEvent: AlertEvent): string {
   };
 
   // Add CloudWatch-specific identity fields
-  if (alertEvent.identity.aws_account) {
-    fingerprintInputs.aws_account = alertEvent.identity.aws_account;
+  if (alertEvent.identity.account_id) {
+    fingerprintInputs.account_id = alertEvent.identity.account_id;
   }
   if (alertEvent.identity.region) {
     fingerprintInputs.region = alertEvent.identity.region;
@@ -41,8 +41,8 @@ function generateGrafanaFingerprint(alertEvent: AlertEvent): string {
   };
 
   // Add Grafana-specific identity fields
-  if (alertEvent.identity.org_id) {
-    fingerprintInputs.org_id = alertEvent.identity.org_id;
+  if (alertEvent.identity.account_id) {
+    fingerprintInputs.account_id = alertEvent.identity.account_id;
   }
   if (alertEvent.identity.rule_id) {
     fingerprintInputs.rule_id = alertEvent.identity.rule_id;

@@ -16,7 +16,7 @@ class TestTransformer extends BaseTransformer {
       priority: this.extractPriority(rawPayload.priority),
       occurred_at: this.parseTimestamp(rawPayload.timestamp),
       team: this.extractTeam(rawPayload.team),
-      identity: { org_id: "", rule_id: "" },
+      identity: { account_id: "", rule_id: "" },
       links: {},
       raw_provider: rawPayload,
     };

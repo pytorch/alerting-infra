@@ -70,7 +70,7 @@ export class CloudWatchTransformer extends BaseTransformer {
 
     // Build identity information
     const identity: AlertIdentity = {
-      aws_account: this.safeString(alarmData.AWSAccountId),
+      account_id: this.safeString(alarmData.AWSAccountId),
       region:
         this.extractRegionFromArn(alarmData.AlarmArn) ||
         this.normalizeRegion(alarmData.Region || ""),

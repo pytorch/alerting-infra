@@ -53,7 +53,7 @@ export class GrafanaTransformer extends BaseTransformer {
 
     // Build identity information
     const identity: AlertIdentity = {
-      org_id: this.safeString(rawPayload.orgId),
+      account_id: this.safeString(rawPayload.orgId),
       rule_id: this.safeString(alert.fingerprint || rawPayload.rule_id),
     };
 

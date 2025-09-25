@@ -32,7 +32,7 @@ describe("GrafanaTransformer", () => {
         priority: "P1",
         team: "dev-infra",
         identity: {
-          org_id: "1",
+          account_id: "1",
           rule_id: "abc123",
         },
         links: {
@@ -167,7 +167,7 @@ describe("GrafanaTransformer", () => {
       const result = transformer.transform(payload, mockEnvelope);
 
       expect(result.identity).toMatchObject({
-        org_id: "42",
+        account_id: "42",
         rule_id: "unique-fingerprint-123",
       });
     });

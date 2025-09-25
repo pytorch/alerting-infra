@@ -11,10 +11,9 @@ export interface Envelope {
 
 // Identity information for cross-account/region collision prevention
 export interface AlertIdentity {
-  aws_account?: string; // for CloudWatch (string), optional for Grafana
+  account_id?: string; // unified account identifier (AWS account ID, organization ID, tenant ID, etc.)
   region?: string; // for CW/Grafana as relevant
   alarm_arn?: string; // for CW, if available
-  org_id?: string; // for Grafana
   rule_id?: string; // for Grafana
 }
 

@@ -31,7 +31,7 @@ describe("CloudWatchTransformer", () => {
         priority: "P2",
         team: "platform",
         identity: {
-          aws_account: "123456789012",
+          account_id: "123456789012",
           region: "us-east-1",
           alarm_arn: "arn:aws:cloudwatch:us-east-1:123456789012:alarm:HighCPU",
         },

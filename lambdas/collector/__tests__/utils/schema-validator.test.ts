@@ -44,10 +44,9 @@ describe("Schema Validator", () => {
         summary: "Test summary",
         reason: "Test reason",
         identity: {
-          aws_account: "123456789012",
+          account_id: "123456789012",
           region: "us-west-2",
           alarm_arn: "arn:aws:cloudwatch:us-west-2:123456789012:alarm:test",
-          org_id: "12345",
           rule_id: "rule-123",
         },
         links: {

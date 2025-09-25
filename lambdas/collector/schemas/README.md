@@ -42,8 +42,7 @@ const alert = {
   priority: "P1",
   occurred_at: "2024-01-15T10:30:00.000Z",
   team: "platform-team",
-  resource: { type: "instance", id: "i-123456" },
-  identity: { rule_id: "cpu-high" },
+  identity: { account_id: "123456789012", rule_id: "cpu-high" },
   links: { runbook_url: "https://wiki.company.com/cpu-runbook" },
 };
 
@@ -73,8 +72,7 @@ alert = {
     "priority": "P1",
     "occurred_at": "2024-01-15T10:30:00.000Z",
     "team": "platform-team",
-    "resource": {"type": "instance", "id": "i-123456"},
-    "identity": {"rule_id": "cpu-high"},
+    "identity": {"account_id": "123456789012", "rule_id": "cpu-high"},
     "links": {"runbook_url": "https://wiki.company.com/cpu-runbook"}
 }
 
@@ -107,8 +105,7 @@ func main() {
         "priority":       "P1",
         "occurred_at":    "2024-01-15T10:30:00.000Z",
         "team":           "platform-team",
-        "resource":       map[string]interface{}{"type": "instance", "id": "i-123456"},
-        "identity":       map[string]interface{}{"rule_id": "cpu-high"},
+        "identity":       map[string]interface{}{"account_id": "123456789012", "rule_id": "cpu-high"},
         "links":          map[string]interface{}{"runbook_url": "https://wiki.company.com/cpu-runbook"},
     }
 
@@ -152,21 +149,12 @@ func main() {
 | `description`  | string | Detailed description (max 4000 chars)              |
 | `summary`      | string | High-level summary (max 1000 chars)                |
 | `reason`       | string | Provider-specific reason (max 2000 chars)          |
-| `resource`     | object | Resource information (requires `type` if provided) |
 | `raw_provider` | any    | Original payload for debugging                     |
-
-### Resource Types
-
-- `runner` - CI/CD runner or build agent
-- `instance` - Virtual machine or container instance
-- `job` - Scheduled job or task
-- `service` - Application service or microservice
-- `generic` - Generic resource type
 
 ### Validation Rules
 
 - **URLs**: Must be valid HTTP/HTTPS URLs (max 2048 chars)
-- **AWS Account**: Must be 12-digit string
+- **Account ID**: Alphanumeric, hyphens, underscores only (max 100 chars)
 - **CloudWatch ARN**: Must start with "arn:aws:cloudwatch:"
 - **Source/Team**: Alphanumeric, hyphens, underscores only
 
