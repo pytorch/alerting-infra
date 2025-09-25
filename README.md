@@ -30,24 +30,19 @@ make build
 ```
 
 ### 2. Deploy to Development
-Prereq: Setup your local machine with AWS credentials
+**Prerequisites**: AWS CLI configured with appropriate credentials for development environment
 
 ```bash
-make aws-init-dev
 make aws-apply-dev
 ```
 
-### 2. Deploy to Prod
-Prereq: Setup your local machine with AWS credentials
-
-(Sorry, currently only local machine based deploys are supported)
+### 3. Deploy to Production
+**Prerequisites**: AWS CLI configured with appropriate credentials for production environment
 
 ```bash
-make aws-init-prod
 make aws-apply-prod
-```
 
-### 3. Test the Pipeline
+### 4. Test the Pipeline
 ```bash
 # Tail logs in one terminal
 make logs-dev
@@ -56,7 +51,7 @@ make logs-dev
 make aws-publish-dev
 ```
 
-### 4. Configure Alert Sources
+### 5. Configure Alert Sources
 **Grafana Webhook:**
 ```bash
 # Get webhook URL
