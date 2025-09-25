@@ -78,7 +78,10 @@ export class GrafanaTransformer extends BaseTransformer {
       title,
       description: this.sanitizeString(annotations.description || "", 1500),
       summary: this.sanitizeString(annotations.summary || "", 1500),
-      reason: this.sanitizeString(this.parseValueString(alert.valueString || ""), 500),
+      reason: this.sanitizeString(
+        this.parseValueString(alert.valueString || ""),
+        500,
+      ),
       priority,
       occurred_at: occurredAt,
       team,
@@ -162,17 +165,24 @@ export class GrafanaTransformer extends BaseTransformer {
 
     try {
       // Parse the valueString format: "[ var=name labels={key=value} value=123 ]" or "[ var=name value=123 ]"
-      const matches = valueString.match(/\[\s*var=([^,\s]+)(?:\s+labels=\{([^}]*)\})?\s+value=([^,\s\]]+)\s*\]/g);
+      const matches = valueString.match(
+        /\[\s*var=([^,\s]+)(?:\s+labels=\{([^}]*)\})?\s+value=([^,\s\]]+)\s*\]/g,
+      );
 
       if (!matches) {
         return valueString; // Return original if parsing fails
       }
 
-      const labelGroups = new Map<string, Array<{var: string, value: string}>>();
+      const labelGroups = new Map<
+        string,
+        Array<{ var: string; value: string }>
+      >();
 
       // Parse each match
       for (const match of matches) {
-        const innerMatch = match.match(/\[\s*var=([^,\s]+)(?:\s+labels=\{([^}]*)\})?\s+value=([^,\s\]]+)\s*\]/);
+        const innerMatch = match.match(
+          /\[\s*var=([^,\s]+)(?:\s+labels=\{([^}]*)\})?\s+value=([^,\s\]]+)\s*\]/,
+        );
 
         if (!innerMatch) continue;
 
@@ -194,7 +204,9 @@ export class GrafanaTransformer extends BaseTransformer {
 
       // Process each label group
       for (const [labels, items] of labelGroups) {
-        const varValuePairs = items.map(item => `${item.var}=${item.value}`).join(", ");
+        const varValuePairs = items
+          .map((item) => `${item.var}=${item.value}`)
+          .join(", ");
 
         if (labels) {
           // Group has labels - include them in the output

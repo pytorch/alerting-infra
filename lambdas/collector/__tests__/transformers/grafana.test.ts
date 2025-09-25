@@ -400,7 +400,8 @@ describe("GrafanaTransformer", () => {
 
   describe("parseValueString", () => {
     it("should parse valueString with no labels", () => {
-      const valueString = "[ var=max_queue_size labels={} value=104 ], [ var=queue_size_threshold labels={} value=1 ]";
+      const valueString =
+        "[ var=max_queue_size labels={} value=104 ], [ var=queue_size_threshold labels={} value=1 ]";
 
       // Access private method through type assertion
       const result = (transformer as any).parseValueString(valueString);
@@ -409,47 +410,61 @@ describe("GrafanaTransformer", () => {
     });
 
     it("should parse valueString with labels and group by labels", () => {
-      const valueString = "[ var=cpu_usage labels={instance=server1,env=prod} value=85 ], [ var=memory_usage labels={instance=server1,env=prod} value=70 ], [ var=disk_usage labels={instance=server2,env=dev} value=45 ]";
+      const valueString =
+        "[ var=cpu_usage labels={instance=server1,env=prod} value=85 ], [ var=memory_usage labels={instance=server1,env=prod} value=70 ], [ var=disk_usage labels={instance=server2,env=dev} value=45 ]";
 
       const result = (transformer as any).parseValueString(valueString);
 
       // Should group by labels
-      expect(result).toContain("[instance=server1,env=prod] cpu_usage=85, memory_usage=70");
+      expect(result).toContain(
+        "[instance=server1,env=prod] cpu_usage=85, memory_usage=70",
+      );
       expect(result).toContain("[instance=server2,env=dev] disk_usage=45");
     });
 
     it("should handle mixed scenarios with some items having labels and others not", () => {
-      const valueString = "[ var=max_queue_size labels={} value=104 ], [ var=cpu_usage labels={instance=server1} value=85 ], [ var=disk_usage labels={instance=server1} value=70 ], [ var=threshold_breached labels={} value=1 ]";
+      const valueString =
+        "[ var=max_queue_size labels={} value=104 ], [ var=cpu_usage labels={instance=server1} value=85 ], [ var=disk_usage labels={instance=server1} value=70 ], [ var=threshold_breached labels={} value=1 ]";
 
       const result = (transformer as any).parseValueString(valueString);
 
       // No labels group
       expect(result).toContain("max_queue_size=104, threshold_breached=1");
       // Labeled group
-      expect(result).toContain("[instance=server1] cpu_usage=85, disk_usage=70");
+      expect(result).toContain(
+        "[instance=server1] cpu_usage=85, disk_usage=70",
+      );
     });
 
     it("should handle the example from the requirements", () => {
-      const valueString = "[ var=max_queue_size labels={} value=104 ], [ var=max_queue_time_mins labels={} value=7 ], [ var=queue_size_threshold labels={} value=1 ], [ var=queue_time_threshold labels={} value=0 ], [ var=threshold_breached labels={} value=1 ]";
+      const valueString =
+        "[ var=max_queue_size labels={} value=104 ], [ var=max_queue_time_mins labels={} value=7 ], [ var=queue_size_threshold labels={} value=1 ], [ var=queue_time_threshold labels={} value=0 ], [ var=threshold_breached labels={} value=1 ]";
 
       const result = (transformer as any).parseValueString(valueString);
 
-      expect(result).toBe("max_queue_size=104, max_queue_time_mins=7, queue_size_threshold=1, queue_time_threshold=0, threshold_breached=1");
+      expect(result).toBe(
+        "max_queue_size=104, max_queue_time_mins=7, queue_size_threshold=1, queue_time_threshold=0, threshold_breached=1",
+      );
     });
 
     it("should handle empty or invalid valueString", () => {
       expect((transformer as any).parseValueString("")).toBe("");
       expect((transformer as any).parseValueString(null)).toBe("");
       expect((transformer as any).parseValueString(undefined)).toBe("");
-      expect((transformer as any).parseValueString("invalid format")).toBe("invalid format");
+      expect((transformer as any).parseValueString("invalid format")).toBe(
+        "invalid format",
+      );
     });
 
     it("should handle valueString with complex label values", () => {
-      const valueString = "[ var=response_time labels={service=api,version=v1.2.3,region=us-east-1} value=250 ], [ var=error_rate labels={service=api,version=v1.2.3,region=us-east-1} value=0.5 ]";
+      const valueString =
+        "[ var=response_time labels={service=api,version=v1.2.3,region=us-east-1} value=250 ], [ var=error_rate labels={service=api,version=v1.2.3,region=us-east-1} value=0.5 ]";
 
       const result = (transformer as any).parseValueString(valueString);
 
-      expect(result).toBe("[service=api,version=v1.2.3,region=us-east-1] response_time=250, error_rate=0.5");
+      expect(result).toBe(
+        "[service=api,version=v1.2.3,region=us-east-1] response_time=250, error_rate=0.5",
+      );
     });
 
     it("should preserve original string if parsing fails", () => {
@@ -469,7 +484,8 @@ describe("GrafanaTransformer", () => {
     });
 
     it("should handle valueString without labels parameter (future-proofing)", () => {
-      const valueString = "[ var=max_queue_size value=104 ], [ var=queue_size_threshold value=1 ]";
+      const valueString =
+        "[ var=max_queue_size value=104 ], [ var=queue_size_threshold value=1 ]";
 
       const result = (transformer as any).parseValueString(valueString);
 
@@ -477,7 +493,8 @@ describe("GrafanaTransformer", () => {
     });
 
     it("should handle mixed format with some having labels parameter and others not", () => {
-      const valueString = "[ var=max_queue_size labels={} value=104 ], [ var=cpu_usage value=85 ], [ var=memory_usage labels={instance=server1} value=70 ]";
+      const valueString =
+        "[ var=max_queue_size labels={} value=104 ], [ var=cpu_usage value=85 ], [ var=memory_usage labels={instance=server1} value=70 ]";
 
       const result = (transformer as any).parseValueString(valueString);
 
