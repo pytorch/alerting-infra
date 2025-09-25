@@ -15,13 +15,13 @@ describe("Source Detection", () => {
         ApproximateReceiveCount: "1",
         SentTimestamp: "1234567890",
         SenderId: "test-sender",
-        ApproximateFirstReceiveTimestamp: "1234567890"
+        ApproximateFirstReceiveTimestamp: "1234567890",
       },
       messageAttributes: messageAttributes || {},
       md5OfBody: "test-md5",
       eventSource: "aws:sqs",
       eventSourceARN: "arn:aws:sqs:us-west-2:123456789012:test-queue",
-      awsRegion: "us-west-2"
+      awsRegion: "us-west-2",
     };
   }
 
@@ -29,7 +29,7 @@ describe("Source Detection", () => {
     it("should detect source from message attributes first", () => {
       const sqsRecord = createSQSRecord(
         { some: "data" },
-        { source: { stringValue: "grafana" } }
+        { source: { stringValue: "grafana" } },
       );
 
       const source = detectAlertSource(sqsRecord);
@@ -46,7 +46,7 @@ describe("Source Detection", () => {
         occurred_at: "2024-01-15T10:30:00.000Z",
         team: "platform-team",
         identity: {},
-        links: {}
+        links: {},
       };
 
       const sqsRecord = createSQSRecord(normalizedMessage);
@@ -59,7 +59,7 @@ describe("Source Detection", () => {
         alerts: [],
         status: "firing",
         orgId: 1,
-        receiver: "webhook"
+        receiver: "webhook",
       };
 
       const sqsRecord = createSQSRecord(grafanaMessage);
@@ -72,8 +72,8 @@ describe("Source Detection", () => {
         Type: "Notification",
         Message: JSON.stringify({
           AlarmName: "Test Alarm",
-          NewStateValue: "ALARM"
-        })
+          NewStateValue: "ALARM",
+        }),
       };
 
       const sqsRecord = createSQSRecord(cloudwatchSnsMessage);
@@ -84,7 +84,7 @@ describe("Source Detection", () => {
     it("should detect direct CloudWatch alarm messages", () => {
       const cloudwatchMessage = {
         AlarmName: "Test Alarm",
-        NewStateValue: "ALARM"
+        NewStateValue: "ALARM",
       };
 
       const sqsRecord = createSQSRecord(cloudwatchMessage);
@@ -95,7 +95,7 @@ describe("Source Detection", () => {
     it("should fallback to grafana for unknown structures", () => {
       const unknownMessage = {
         unknown: "structure",
-        data: "value"
+        data: "value",
       };
 
       const sqsRecord = createSQSRecord(unknownMessage);
@@ -112,13 +112,13 @@ describe("Source Detection", () => {
           ApproximateReceiveCount: "1",
           SentTimestamp: "1234567890",
           SenderId: "test-sender",
-          ApproximateFirstReceiveTimestamp: "1234567890"
+          ApproximateFirstReceiveTimestamp: "1234567890",
         },
         messageAttributes: {},
         md5OfBody: "test-md5",
         eventSource: "aws:sqs",
         eventSourceARN: "arn:aws:sqs:us-west-2:123456789012:test-queue",
-        awsRegion: "us-west-2"
+        awsRegion: "us-west-2",
       } as SQSRecord;
 
       const source = detectAlertSource(sqsRecord);
@@ -129,7 +129,7 @@ describe("Source Detection", () => {
       const incompleteMessage = {
         schema_version: 1,
         source: "datadog",
-        state: "FIRING"
+        state: "FIRING",
         // Missing required fields like title, priority, team, etc.
       };
 
@@ -148,13 +148,12 @@ describe("Source Detection", () => {
         occurred_at: "2024-01-15T10:30:00.000Z",
         team: "platform-team",
         identity: {},
-        links: {}
+        links: {},
       };
 
-      const sqsRecord = createSQSRecord(
-        normalizedMessage,
-        { source: { stringValue: "cloudwatch" } }
-      );
+      const sqsRecord = createSQSRecord(normalizedMessage, {
+        source: { stringValue: "cloudwatch" },
+      });
 
       const source = detectAlertSource(sqsRecord);
       expect(source).toBe("cloudwatch"); // message attribute takes precedence
@@ -178,14 +177,19 @@ describe("Source Detection", () => {
     });
 
     it("should be case insensitive", () => {
-      expect(getTransformer("NORMALIZED")).toBeInstanceOf(NormalizedTransformer);
+      expect(getTransformer("NORMALIZED")).toBeInstanceOf(
+        NormalizedTransformer,
+      );
       expect(getTransformer("Grafana")).toBeInstanceOf(GrafanaTransformer);
-      expect(getTransformer("CloudWatch")).toBeInstanceOf(CloudWatchTransformer);
+      expect(getTransformer("CloudWatch")).toBeInstanceOf(
+        CloudWatchTransformer,
+      );
     });
 
     it("should throw error for unknown source", () => {
-      expect(() => getTransformer("unknown"))
-        .toThrow("Unknown alert source: unknown");
+      expect(() => getTransformer("unknown")).toThrow(
+        "Unknown alert source: unknown",
+      );
     });
   });
 });

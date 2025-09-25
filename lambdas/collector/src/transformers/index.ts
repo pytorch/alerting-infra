@@ -35,7 +35,14 @@ export function detectAlertSource(sqsRecord: SQSRecord): string {
   // Check if the message body is already in normalized format
   try {
     const body = JSON.parse(sqsRecord.body);
-    if (body.schema_version && body.source && body.state && body.title && body.priority && body.team) {
+    if (
+      body.schema_version &&
+      body.source &&
+      body.state &&
+      body.title &&
+      body.priority &&
+      body.team
+    ) {
       return "normalized";
     }
   } catch {
@@ -74,7 +81,6 @@ export function detectAlertSource(sqsRecord: SQSRecord): string {
       bodyPreview: JSON.stringify(body).substring(0, 200),
     });
     return "grafana";
-
   } catch (error) {
     console.warn("Failed to parse SQS record body for source detection", {
       messageId: sqsRecord.messageId,

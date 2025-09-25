@@ -19,7 +19,6 @@ function generateCloudWatchFingerprint(alertEvent: AlertEvent): string {
     title: normalizeTitle(alertEvent.title),
   };
 
-
   // Add CloudWatch-specific identity fields
   if (alertEvent.identity.aws_account) {
     fingerprintInputs.aws_account = alertEvent.identity.aws_account;
@@ -41,7 +40,6 @@ function generateGrafanaFingerprint(alertEvent: AlertEvent): string {
     title: normalizeTitle(alertEvent.title),
   };
 
-
   // Add Grafana-specific identity fields
   if (alertEvent.identity.org_id) {
     fingerprintInputs.org_id = alertEvent.identity.org_id;
@@ -57,7 +55,7 @@ function generateGrafanaFingerprint(alertEvent: AlertEvent): string {
 function sortAndHashObject(obj: Record<string, any>): string {
   // Sort keys to ensure deterministic ordering
   const sortedKeys = Object.keys(obj).sort();
-  const sortedPairs = sortedKeys.map(key => `${key}=${obj[key]}`);
+  const sortedPairs = sortedKeys.map((key) => `${key}=${obj[key]}`);
   const canonicalString = sortedPairs.join("|");
 
   // Create SHA-256 hash

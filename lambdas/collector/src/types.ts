@@ -9,7 +9,6 @@ export interface Envelope {
   event_id?: string; // deterministic or provider-derived unique id if present
 }
 
-
 // Identity information for cross-account/region collision prevention
 export interface AlertIdentity {
   aws_account?: string; // for CloudWatch (string), optional for Grafana
@@ -75,4 +74,9 @@ export interface ProcessingResult {
   metadata?: Record<string, any>;
 }
 
-export type AlertAction = "CREATE" | "COMMENT" | "CLOSE" | "SKIP_STALE" | "SKIP_MANUAL_CLOSE";
+export type AlertAction =
+  | "CREATE"
+  | "COMMENT"
+  | "CLOSE"
+  | "SKIP_STALE"
+  | "SKIP_MANUAL_CLOSE";

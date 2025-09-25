@@ -9,15 +9,15 @@
  */
 
 export interface CircuitBreakerConfig {
-  failureThreshold: number;     // Number of failures before opening
-  recoveryTimeout: number;      // Time in ms before attempting recovery
-  monitoringWindow: number;     // Time window for failure tracking
+  failureThreshold: number; // Number of failures before opening
+  recoveryTimeout: number; // Time in ms before attempting recovery
+  monitoringWindow: number; // Time window for failure tracking
 }
 
 export enum CircuitState {
-  CLOSED = 'CLOSED',     // Normal operation
-  OPEN = 'OPEN',         // Circuit is open, failing fast
-  HALF_OPEN = 'HALF_OPEN' // Testing recovery
+  CLOSED = "CLOSED", // Normal operation
+  OPEN = "OPEN", // Circuit is open, failing fast
+  HALF_OPEN = "HALF_OPEN", // Testing recovery
 }
 
 export class CircuitBreaker {
@@ -31,20 +31,25 @@ export class CircuitBreaker {
   /**
    * Execute a function with circuit breaker protection
    */
-  async execute<T>(fn: () => Promise<T>, fallback?: () => Promise<T>): Promise<T> {
+  async execute<T>(
+    fn: () => Promise<T>,
+    fallback?: () => Promise<T>,
+  ): Promise<T> {
     if (this.state === CircuitState.OPEN) {
       if (Date.now() < this.nextAttemptTime) {
         // Circuit is still open, use fallback or throw
         if (fallback) {
-          console.log('Circuit breaker OPEN - using fallback');
+          console.log("Circuit breaker OPEN - using fallback");
           return await fallback();
         } else {
-          throw new Error('Circuit breaker is OPEN - service unavailable');
+          throw new Error("Circuit breaker is OPEN - service unavailable");
         }
       } else {
         // Time to test recovery
         this.state = CircuitState.HALF_OPEN;
-        console.log('Circuit breaker transitioning to HALF_OPEN for recovery test');
+        console.log(
+          "Circuit breaker transitioning to HALF_OPEN for recovery test",
+        );
       }
     }
 
@@ -58,7 +63,7 @@ export class CircuitBreaker {
       // If circuit is now open and we have a fallback, use it
       // Note: onFailure() can change the state to OPEN
       if ((this.state as CircuitState) === CircuitState.OPEN && fallback) {
-        console.log('Circuit breaker OPENED - using fallback after failure');
+        console.log("Circuit breaker OPENED - using fallback after failure");
         return await fallback();
       }
 
@@ -70,7 +75,7 @@ export class CircuitBreaker {
     this.failureCount = 0;
     if (this.state === CircuitState.HALF_OPEN) {
       this.state = CircuitState.CLOSED;
-      console.log('Circuit breaker recovered - transitioning to CLOSED');
+      console.log("Circuit breaker recovered - transitioning to CLOSED");
     }
   }
 
@@ -78,13 +83,16 @@ export class CircuitBreaker {
     this.failureCount++;
     this.lastFailureTime = Date.now();
 
-    if (this.state === CircuitState.CLOSED && (this.failureCount < this.config.failureThreshold)) {
+    if (
+      this.state === CircuitState.CLOSED &&
+      this.failureCount < this.config.failureThreshold
+    ) {
       // Ignore this failure, not enough to open the circuit yet
       return;
     }
 
     if (this.state === CircuitState.HALF_OPEN) {
-      console.log('Circuit breaker recovery test failed - back to OPEN');
+      console.log("Circuit breaker recovery test failed - back to OPEN");
     } else if (this.failureCount >= this.config.failureThreshold) {
       console.log(`Circuit breaker OPENED after ${this.failureCount} failures`);
     }
@@ -97,11 +105,15 @@ export class CircuitBreaker {
   /**
    * Get current circuit breaker status
    */
-  getStatus(): { state: CircuitState; failureCount: number; lastFailureTime: number } {
+  getStatus(): {
+    state: CircuitState;
+    failureCount: number;
+    lastFailureTime: number;
+  } {
     return {
       state: this.state,
       failureCount: this.failureCount,
-      lastFailureTime: this.lastFailureTime
+      lastFailureTime: this.lastFailureTime,
     };
   }
 
@@ -113,7 +125,7 @@ export class CircuitBreaker {
     this.failureCount = 0;
     this.lastFailureTime = 0;
     this.nextAttemptTime = 0;
-    console.log('Circuit breaker manually reset');
+    console.log("Circuit breaker manually reset");
   }
 }
 
@@ -121,7 +133,7 @@ export class CircuitBreaker {
  * Default configuration for GitHub API circuit breaker
  */
 export const GITHUB_CIRCUIT_BREAKER_CONFIG: CircuitBreakerConfig = {
-  failureThreshold: 3,      // Open after 3 consecutive failures
-  recoveryTimeout: 30000,   // Wait 30 seconds before testing recovery
-  monitoringWindow: 60000,  // Monitor failures within 1 minute window
+  failureThreshold: 3, // Open after 3 consecutive failures
+  recoveryTimeout: 30000, // Wait 30 seconds before testing recovery
+  monitoringWindow: 60000, // Monitor failures within 1 minute window
 };

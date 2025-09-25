@@ -1,6 +1,14 @@
-import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { mockClient } from "aws-sdk-client-mock";
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
 
 // Create mocked AWS clients
 export const mockDynamoDBClient = mockClient(DynamoDBDocumentClient);
@@ -28,9 +36,10 @@ export function setupDynamoDBMocks() {
 export function setupSecretsManagerMocks() {
   mockSecretsManagerClient.on(GetSecretValueCommand).resolves({
     SecretString: JSON.stringify({
-      app_id: '123456',
-      private_key: '-----BEGIN RSA PRIVATE KEY-----\nMOCK_PRIVATE_KEY\n-----END RSA PRIVATE KEY-----',
-      installation_id: '78901234',
+      app_id: "123456",
+      private_key:
+        "-----BEGIN RSA PRIVATE KEY-----\nMOCK_PRIVATE_KEY\n-----END RSA PRIVATE KEY-----",
+      installation_id: "78901234",
     }),
   });
 }
@@ -40,22 +49,23 @@ export const mockGitHubResponses = {
   createIssue: {
     id: 123,
     number: 456,
-    title: 'Test Issue',
-    state: 'open',
-    html_url: 'https://github.com/test-org/test-repo/issues/456',
+    title: "Test Issue",
+    state: "open",
+    html_url: "https://github.com/test-org/test-repo/issues/456",
   },
 
   updateIssue: {
     id: 123,
     number: 456,
-    title: 'Test Issue',
-    state: 'closed',
-    html_url: 'https://github.com/test-org/test-repo/issues/456',
+    title: "Test Issue",
+    state: "closed",
+    html_url: "https://github.com/test-org/test-repo/issues/456",
   },
 
   createComment: {
     id: 789,
-    body: 'Test comment',
-    html_url: 'https://github.com/test-org/test-repo/issues/456#issuecomment-789',
+    body: "Test comment",
+    html_url:
+      "https://github.com/test-org/test-repo/issues/456#issuecomment-789",
   },
 };

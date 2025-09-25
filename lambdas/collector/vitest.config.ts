@@ -1,22 +1,22 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     // Test files
-    include: ['__tests__/**/*.test.ts'],
-    exclude: ['node_modules', 'dist'],
+    include: ["__tests__/**/*.test.ts"],
+    exclude: ["node_modules", "dist"],
 
     // Environment
-    environment: 'node',
+    environment: "node",
 
     // Don't watch by default
     watch: false,
 
     // Coverage
     coverage: {
-      provider: 'v8',
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.d.ts'],
+      provider: "v8",
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/*.d.ts"],
       thresholds: {
         statements: 90,
         branches: 85,
@@ -29,6 +29,6 @@ export default defineConfig({
     globals: true,
 
     // Setup files
-    setupFiles: ['__tests__/utils/test-setup.ts'],
+    setupFiles: ["__tests__/utils/test-setup.ts"],
   },
 });

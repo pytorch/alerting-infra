@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { validateNormalizedAlertEvent, getAlertEventSchema, getCurrentSchemaVersion } from "../../src/utils/schema-validator";
+import {
+  validateNormalizedAlertEvent,
+  getAlertEventSchema,
+  getCurrentSchemaVersion,
+} from "../../src/utils/schema-validator";
 import { AlertEvent } from "../../src/types";
 
 describe("Schema Validator", () => {
@@ -12,11 +16,11 @@ describe("Schema Validator", () => {
     occurred_at: "2024-01-15T10:30:00.000Z",
     team: "test-team",
     identity: {
-      rule_id: "test-rule"
+      rule_id: "test-rule",
     },
     links: {
-      runbook_url: "https://example.com/runbook"
-    }
+      runbook_url: "https://example.com/runbook",
+    },
   };
 
   describe("validateNormalizedAlertEvent", () => {
@@ -28,10 +32,10 @@ describe("Schema Validator", () => {
       const invalidAlert = { ...validAlertEvent };
       delete (invalidAlert as any).title;
 
-      expect(() => validateNormalizedAlertEvent(invalidAlert))
-        .toThrow("AlertEvent validation failed");
+      expect(() => validateNormalizedAlertEvent(invalidAlert)).toThrow(
+        "AlertEvent validation failed",
+      );
     });
-
 
     it("should allow valid optional fields", () => {
       const alertWithOptionals: AlertEvent = {
@@ -44,20 +48,22 @@ describe("Schema Validator", () => {
           region: "us-west-2",
           alarm_arn: "arn:aws:cloudwatch:us-west-2:123456789012:alarm:test",
           org_id: "12345",
-          rule_id: "rule-123"
+          rule_id: "rule-123",
         },
         links: {
           runbook_url: "https://example.com/runbook",
           dashboard_url: "https://example.com/dashboard",
           source_url: "https://example.com/source",
-          silence_url: "https://example.com/silence"
+          silence_url: "https://example.com/silence",
         },
         raw_provider: {
-          original: "data"
-        }
+          original: "data",
+        },
       };
 
-      expect(() => validateNormalizedAlertEvent(alertWithOptionals)).not.toThrow();
+      expect(() =>
+        validateNormalizedAlertEvent(alertWithOptionals),
+      ).not.toThrow();
     });
   });
 

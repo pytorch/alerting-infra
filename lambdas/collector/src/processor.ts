@@ -58,7 +58,6 @@ export class AlertProcessor {
           state: alertEvent.state,
         },
       };
-
     } catch (error) {
       console.error("Failed to process SQS record", {
         messageId: sqsRecord.messageId,
@@ -88,13 +87,19 @@ export class AlertProcessor {
       received_at: new Date().toISOString(),
       ingest_topic: topicName,
       ingest_region: region,
-      delivery_attempt: parseInt(sqsRecord.attributes?.ApproximateReceiveCount || "1", 10),
+      delivery_attempt: parseInt(
+        sqsRecord.attributes?.ApproximateReceiveCount || "1",
+        10,
+      ),
       event_id: sqsRecord.messageId,
     };
   }
 
   // Normalize alert using appropriate transformer
-  async normalizeAlert(rawPayload: any, envelope: Envelope): Promise<AlertEvent> {
+  async normalizeAlert(
+    rawPayload: any,
+    envelope: Envelope,
+  ): Promise<AlertEvent> {
     // Get the appropriate transformer based on payload analysis
     const source = this.detectSourceFromPayload(rawPayload);
     const transformer = getTransformerForRecord({
@@ -106,16 +111,24 @@ export class AlertProcessor {
   }
 
   // Check if alert is out of order (placeholder for future implementation)
-  async checkOutOfOrder(alertEvent: AlertEvent, fingerprint: string): Promise<boolean> {
+  async checkOutOfOrder(
+    alertEvent: AlertEvent,
+    fingerprint: string,
+  ): Promise<boolean> {
     // TODO: Implement out-of-order detection by checking DynamoDB
     // For now, always return false (not out of order)
     return false;
   }
 
   // Determine what action to take based on alert state and history
-  async determineAction(alertEvent: AlertEvent, fingerprint: string): Promise<AlertAction> {
+  async determineAction(
+    alertEvent: AlertEvent,
+    fingerprint: string,
+  ): Promise<AlertAction> {
     if (!this.stateManager) {
-      console.warn("STATUS_TABLE_NAME not set, using simple action determination");
+      console.warn(
+        "STATUS_TABLE_NAME not set, using simple action determination",
+      );
       return alertEvent.state === "FIRING" ? "CREATE" : "SKIP_STALE";
     }
 
@@ -130,7 +143,9 @@ export class AlertProcessor {
 
       // Check if manually closed - never auto-act on manually closed alerts
       if (existingState.manually_closed) {
-        console.log(`Alert ${fingerprint} was manually closed, skipping auto-action`);
+        console.log(
+          `Alert ${fingerprint} was manually closed, skipping auto-action`,
+        );
         return "SKIP_MANUAL_CLOSE";
       }
 
@@ -164,7 +179,6 @@ export class AlertProcessor {
 
       // Default fallback
       return "SKIP_STALE";
-
     } catch (error) {
       console.error("Failed to determine action using DynamoDB state", {
         fingerprint,
@@ -185,10 +199,13 @@ export class AlertProcessor {
       // TODO: If SQS record body isn't parsed, then we
       //       can't detect source properly and should just
       //       fail the record instead, let it go to the poison queue.
-      console.warn("Failed to parse SQS record body as JSON, using raw string", {
-        messageId: sqsRecord.messageId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      console.warn(
+        "Failed to parse SQS record body as JSON, using raw string",
+        {
+          messageId: sqsRecord.messageId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
       return sqsRecord.body;
     }
   }
@@ -226,7 +243,12 @@ export class AlertProcessor {
     }
 
     // Check for Grafana-specific fields
-    if (rawPayload.alerts || rawPayload.status || rawPayload.orgId || rawPayload.receiver) {
+    if (
+      rawPayload.alerts ||
+      rawPayload.status ||
+      rawPayload.orgId ||
+      rawPayload.receiver
+    ) {
       return "grafana";
     }
 

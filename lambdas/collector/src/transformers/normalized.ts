@@ -35,18 +35,18 @@ export class NormalizedTransformer extends BaseTransformer {
         priority: alertEvent.priority,
         state: alertEvent.state,
         schema_version: alertEvent.schema_version,
-        messageId: envelope.event_id
+        messageId: envelope.event_id,
       });
 
       return alertEvent;
-
     } catch (error) {
       // Add context to validation errors
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(
         `Normalized alert validation failed: ${errorMessage}\n\n` +
-        `Ensure your alert conforms to the AlertEvent schema. ` +
-        `See: https://github.com/pytorch/test-infra-alerting/tree/main/lambdas/collector/schemas`
+          `Ensure your alert conforms to the AlertEvent schema. ` +
+          `See: https://github.com/pytorch/test-infra-alerting/tree/main/lambdas/collector/schemas`,
       );
     }
   }
@@ -60,7 +60,9 @@ export class NormalizedTransformer extends BaseTransformer {
     if (alertEvent.links.runbook_url) {
       const validatedUrl = this.validateUrl(alertEvent.links.runbook_url);
       if (!validatedUrl) {
-        throw new Error(`Invalid runbook_url after security validation: ${alertEvent.links.runbook_url}`);
+        throw new Error(
+          `Invalid runbook_url after security validation: ${alertEvent.links.runbook_url}`,
+        );
       }
       alertEvent.links.runbook_url = validatedUrl;
     }
@@ -68,7 +70,9 @@ export class NormalizedTransformer extends BaseTransformer {
     if (alertEvent.links.dashboard_url) {
       const validatedUrl = this.validateUrl(alertEvent.links.dashboard_url);
       if (!validatedUrl) {
-        throw new Error(`Invalid dashboard_url after security validation: ${alertEvent.links.dashboard_url}`);
+        throw new Error(
+          `Invalid dashboard_url after security validation: ${alertEvent.links.dashboard_url}`,
+        );
       }
       alertEvent.links.dashboard_url = validatedUrl;
     }
@@ -76,7 +80,9 @@ export class NormalizedTransformer extends BaseTransformer {
     if (alertEvent.links.source_url) {
       const validatedUrl = this.validateUrl(alertEvent.links.source_url);
       if (!validatedUrl) {
-        throw new Error(`Invalid source_url after security validation: ${alertEvent.links.source_url}`);
+        throw new Error(
+          `Invalid source_url after security validation: ${alertEvent.links.source_url}`,
+        );
       }
       alertEvent.links.source_url = validatedUrl;
     }
@@ -84,10 +90,11 @@ export class NormalizedTransformer extends BaseTransformer {
     if (alertEvent.links.silence_url) {
       const validatedUrl = this.validateUrl(alertEvent.links.silence_url);
       if (!validatedUrl) {
-        throw new Error(`Invalid silence_url after security validation: ${alertEvent.links.silence_url}`);
+        throw new Error(
+          `Invalid silence_url after security validation: ${alertEvent.links.silence_url}`,
+        );
       }
       alertEvent.links.silence_url = validatedUrl;
     }
   }
-
 }

@@ -13,16 +13,17 @@ const enableGithubIssues = process.env.ENABLE_GITHUB_ISSUES === "true";
 
 const ddbClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const processor = new AlertProcessor();
-const stateManager = tableName ? new AlertStateManager(ddbClient, tableName) : null;
+const stateManager = tableName
+  ? new AlertStateManager(ddbClient, tableName)
+  : null;
 const githubClient = new GitHubClient(githubRepo, githubAppSecretId, 10);
-
 
 /**
  * Create a GitHub issue for an alert
  */
 async function createGitHubIssueForAlert(
-  alertEvent: import('./types').AlertEvent,
-  fingerprint: string
+  alertEvent: import("./types").AlertEvent,
+  fingerprint: string,
 ): Promise<{ success: boolean; issueNumber?: number; error?: string }> {
   try {
     const issueTitle = `[${alertEvent.priority}] ${alertEvent.title}`;
@@ -35,15 +36,27 @@ async function createGitHubIssueForAlert(
       `- **State**: ${alertEvent.state}\n`,
       `- **Team**: ${alertEvent.team}\n`,
       `- **Priority**: ${alertEvent.priority}\n`,
-      alertEvent.description ? `- **Description**: ${alertEvent.description}\n` : "",
+      alertEvent.description
+        ? `- **Description**: ${alertEvent.description}\n`
+        : "",
       alertEvent.reason ? `- **Reason**: ${alertEvent.reason}\n` : "",
-      alertEvent.links?.runbook_url ? `- **Runbook**: ${alertEvent.links.runbook_url}\n` : "",
-      alertEvent.links?.dashboard_url ? `- **Dashboard**: ${alertEvent.links.dashboard_url}\n` : "",
-      alertEvent.links?.source_url ? `- **View Alert**: ${alertEvent.links.source_url}\n` : "",
-      alertEvent.links?.silence_url ? `- **Silence Alert**: ${alertEvent.links.silence_url}\n` : "",
+      alertEvent.links?.runbook_url
+        ? `- **Runbook**: ${alertEvent.links.runbook_url}\n`
+        : "",
+      alertEvent.links?.dashboard_url
+        ? `- **Dashboard**: ${alertEvent.links.dashboard_url}\n`
+        : "",
+      alertEvent.links?.source_url
+        ? `- **View Alert**: ${alertEvent.links.source_url}\n`
+        : "",
+      alertEvent.links?.silence_url
+        ? `- **Silence Alert**: ${alertEvent.links.silence_url}\n`
+        : "",
       `- **Source**: ${alertEvent.source}\n`,
       `- **Fingerprint**: \`${fingerprint}\`\n`,
-    ].filter(Boolean).join("");
+    ]
+      .filter(Boolean)
+      .join("");
 
     // Create labels based on priority, team, source, and default area label
     // Note: Team names are already normalized (spaces escaped) by transformers
@@ -51,11 +64,17 @@ async function createGitHubIssueForAlert(
       "area:alerting", // Default label for all alerts
       `Pri:${alertEvent.priority}`,
       `Team:${alertEvent.team}`,
-      `Source:${alertEvent.source}`
+      `Source:${alertEvent.source}`,
     ];
 
-    const issueNumber = await githubClient.createGithubIssue(issueTitle, issueBody, labels);
-    console.log(`✅ Created GitHub issue #${issueNumber} for fingerprint ${fingerprint}`);
+    const issueNumber = await githubClient.createGithubIssue(
+      issueTitle,
+      issueBody,
+      labels,
+    );
+    console.log(
+      `✅ Created GitHub issue #${issueNumber} for fingerprint ${fingerprint}`,
+    );
 
     return { success: true, issueNumber };
   } catch (error) {
@@ -73,16 +92,20 @@ async function createGitHubIssueForAlert(
  */
 async function closeGitHubIssueForAlert(
   issueNumber: number,
-  fingerprint: string
+  fingerprint: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const success = await githubClient.closeGithubIssue(issueNumber);
 
     if (success) {
-      console.log(`✅ Closed GitHub issue #${issueNumber} for fingerprint ${fingerprint}`);
+      console.log(
+        `✅ Closed GitHub issue #${issueNumber} for fingerprint ${fingerprint}`,
+      );
       return { success: true };
     } else {
-      console.warn(`⚠️ GitHub issue #${issueNumber} close fell back to manual processing (circuit breaker)`);
+      console.warn(
+        `⚠️ GitHub issue #${issueNumber} close fell back to manual processing (circuit breaker)`,
+      );
       return { success: false, error: "Circuit breaker fallback" };
     }
   } catch (error) {
@@ -100,9 +123,9 @@ async function closeGitHubIssueForAlert(
  * Add a comment to a GitHub issue for a recurring alert
  */
 async function commentOnGitHubIssueForAlert(
-  alertEvent: import('./types').AlertEvent,
+  alertEvent: import("./types").AlertEvent,
   issueNumber: number,
-  fingerprint: string
+  fingerprint: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const commentBody = [
@@ -113,16 +136,25 @@ async function commentOnGitHubIssueForAlert(
       "",
       "The alert condition is still active.",
       "",
-      `**Fingerprint**: \`${fingerprint}\``
-    ].filter(Boolean).join("\n");
+      `**Fingerprint**: \`${fingerprint}\``,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-    const success = await githubClient.commentOnGithubIssue(issueNumber, commentBody);
+    const success = await githubClient.commentOnGithubIssue(
+      issueNumber,
+      commentBody,
+    );
 
     if (success) {
-      console.log(`✅ Added comment to GitHub issue #${issueNumber} for fingerprint ${fingerprint}`);
+      console.log(
+        `✅ Added comment to GitHub issue #${issueNumber} for fingerprint ${fingerprint}`,
+      );
       return { success: true };
     } else {
-      console.warn(`⚠️ GitHub issue #${issueNumber} comment fell back to manual processing (circuit breaker)`);
+      console.warn(
+        `⚠️ GitHub issue #${issueNumber} comment fell back to manual processing (circuit breaker)`,
+      );
       return { success: false, error: "Circuit breaker fallback" };
     }
   } catch (error) {
@@ -143,7 +175,7 @@ export const handler: SQSHandler = async (event) => {
     try {
       // Log incoming record for debugging
       console.log("\n\n");
-      console.log("Processing raw record")
+      console.log("Processing raw record");
       console.log(record);
       console.log("\n\n");
       // continue; // DISABLED: Enable main processing pipeline
@@ -165,7 +197,7 @@ export const handler: SQSHandler = async (event) => {
         console.error("No fingerprint or action generated", {
           messageId: record.messageId,
           hasFingerprint: !!fingerprint,
-          hasAction: !!action
+          hasAction: !!action,
         });
         batchItemFailures.push({ itemIdentifier: record.messageId });
         continue;
@@ -182,19 +214,25 @@ export const handler: SQSHandler = async (event) => {
       const alertEvent = result.metadata?.alertEvent;
       if (alertEvent) {
         console.log("\n✨ NORMALIZED ALERT EVENT:");
-        console.log(JSON.stringify({
-          source: alertEvent.source,
-          state: alertEvent.state,
-          title: alertEvent.title,
-          description: alertEvent.description,
-          reason: alertEvent.reason,
-          priority: alertEvent.priority,
-          team: alertEvent.team,
-          occurred_at: alertEvent.occurred_at,
-          identity: alertEvent.identity,
-          links: alertEvent.links,
-          schema_version: alertEvent.schema_version
-        }, null, 2));
+        console.log(
+          JSON.stringify(
+            {
+              source: alertEvent.source,
+              state: alertEvent.state,
+              title: alertEvent.title,
+              description: alertEvent.description,
+              reason: alertEvent.reason,
+              priority: alertEvent.priority,
+              team: alertEvent.team,
+              occurred_at: alertEvent.occurred_at,
+              identity: alertEvent.identity,
+              links: alertEvent.links,
+              schema_version: alertEvent.schema_version,
+            },
+            null,
+            2,
+          ),
+        );
       }
 
       console.log(`\n🔗 FINGERPRINT: ${fingerprint}`);
@@ -210,14 +248,16 @@ export const handler: SQSHandler = async (event) => {
             "area:alerting",
             `Pri:${alertEvent.priority}`,
             `Team:${alertEvent.team}`,
-            `Source:${alertEvent.source}`
+            `Source:${alertEvent.source}`,
           ];
           console.log(`   Title: ${wouldCreateIssue}`);
           console.log(`   Labels: ${wouldCreateLabels.join(", ")}`);
         } else if (action === "CLOSE") {
           console.log(`   Will close existing issue for resolved alert`);
         } else if (action === "COMMENT") {
-          console.log(`   Will add comment to existing issue for continuing alert`);
+          console.log(
+            `   Will add comment to existing issue for continuing alert`,
+          );
         } else {
           console.log(`   No GitHub action required`);
         }
@@ -235,7 +275,10 @@ export const handler: SQSHandler = async (event) => {
       if (enableGithubIssues && result.metadata?.alertEvent) {
         try {
           if (action === "CREATE") {
-            const githubResult = await createGitHubIssueForAlert(result.metadata.alertEvent, fingerprint);
+            const githubResult = await createGitHubIssueForAlert(
+              result.metadata.alertEvent,
+              fingerprint,
+            );
             emittedToGithub = githubResult.success;
             issueNumber = githubResult.issueNumber;
           } else if (action === "CLOSE") {
@@ -243,11 +286,16 @@ export const handler: SQSHandler = async (event) => {
             if (stateManager) {
               const existingState = await stateManager.loadState(fingerprint);
               if (existingState?.issue_number) {
-                const githubResult = await closeGitHubIssueForAlert(existingState.issue_number, fingerprint);
+                const githubResult = await closeGitHubIssueForAlert(
+                  existingState.issue_number,
+                  fingerprint,
+                );
                 emittedToGithub = githubResult.success;
                 issueNumber = existingState.issue_number; // Keep the same issue number
               } else {
-                console.warn(`Cannot close GitHub issue: no issue number found for fingerprint ${fingerprint}`);
+                console.warn(
+                  `Cannot close GitHub issue: no issue number found for fingerprint ${fingerprint}`,
+                );
               }
             }
           } else if (action === "COMMENT") {
@@ -255,11 +303,17 @@ export const handler: SQSHandler = async (event) => {
             if (stateManager) {
               const existingState = await stateManager.loadState(fingerprint);
               if (existingState?.issue_number) {
-                const githubResult = await commentOnGitHubIssueForAlert(result.metadata.alertEvent, existingState.issue_number, fingerprint);
+                const githubResult = await commentOnGitHubIssueForAlert(
+                  result.metadata.alertEvent,
+                  existingState.issue_number,
+                  fingerprint,
+                );
                 emittedToGithub = githubResult.success;
                 issueNumber = existingState.issue_number; // Keep the same issue number
               } else {
-                console.warn(`Cannot comment on GitHub issue: no issue number found for fingerprint ${fingerprint}`);
+                console.warn(
+                  `Cannot comment on GitHub issue: no issue number found for fingerprint ${fingerprint}`,
+                );
               }
             }
           } else {
@@ -267,15 +321,23 @@ export const handler: SQSHandler = async (event) => {
           }
           // Continue processing regardless of GitHub success/failure
         } catch (githubError) {
-          console.error(`GitHub ${action} action failed, continuing with DynamoDB save`, {
-            fingerprint,
-            action,
-            error: githubError instanceof Error ? githubError.message : String(githubError),
-          });
+          console.error(
+            `GitHub ${action} action failed, continuing with DynamoDB save`,
+            {
+              fingerprint,
+              action,
+              error:
+                githubError instanceof Error
+                  ? githubError.message
+                  : String(githubError),
+            },
+          );
           // Continue processing - GitHub failure should not stop DynamoDB save
         }
       } else if (result.metadata?.alertEvent) {
-        console.log(`📝 GitHub actions disabled (ENABLE_GITHUB_ISSUES=${enableGithubIssues})`);
+        console.log(
+          `📝 GitHub actions disabled (ENABLE_GITHUB_ISSUES=${enableGithubIssues})`,
+        );
       }
 
       // ALWAYS save to DynamoDB regardless of GitHub status
@@ -285,37 +347,44 @@ export const handler: SQSHandler = async (event) => {
             fingerprint,
             result.metadata.alertEvent,
             action,
-            issueNumber // undefined when GitHub disabled or failed - this is fine
+            issueNumber, // undefined when GitHub disabled or failed - this is fine
           );
           const githubStatus = emittedToGithub
             ? ` (with GitHub ${action.toLowerCase()} #${issueNumber})`
             : enableGithubIssues
               ? ` (GitHub ${action.toLowerCase()} failed)`
-              : ' (GitHub disabled)';
-          console.log(`✅ Stored alert state ${fingerprint} to DynamoDB${githubStatus}`);
+              : " (GitHub disabled)";
+          console.log(
+            `✅ Stored alert state ${fingerprint} to DynamoDB${githubStatus}`,
+          );
         } catch (err) {
-          console.error("❌ DynamoDB save failed - this will retry the message", {
-            error: err instanceof Error ? err.message : String(err),
-            table: tableName,
-            messageId: record.messageId,
-            fingerprint,
-            githubEnabled: enableGithubIssues,
-            hadIssueNumber: issueNumber !== undefined,
-          });
+          console.error(
+            "❌ DynamoDB save failed - this will retry the message",
+            {
+              error: err instanceof Error ? err.message : String(err),
+              table: tableName,
+              messageId: record.messageId,
+              fingerprint,
+              githubEnabled: enableGithubIssues,
+              hadIssueNumber: issueNumber !== undefined,
+            },
+          );
           // DynamoDB failure should fail the record for retry
           batchItemFailures.push({ itemIdentifier: record.messageId });
         }
       } else {
-        console.error("❌ Cannot save to DynamoDB - missing stateManager or alertEvent", {
-          hasStateManager: !!stateManager,
-          hasAlertEvent: !!result.metadata?.alertEvent,
-          tableName,
-          messageId: record.messageId,
-        });
+        console.error(
+          "❌ Cannot save to DynamoDB - missing stateManager or alertEvent",
+          {
+            hasStateManager: !!stateManager,
+            hasAlertEvent: !!result.metadata?.alertEvent,
+            tableName,
+            messageId: record.messageId,
+          },
+        );
         // This is a configuration/processing error - fail the record
         batchItemFailures.push({ itemIdentifier: record.messageId });
       }
-
     } catch (err) {
       console.error(`Failed to process record ${record.messageId}:`, err);
       batchItemFailures.push({ itemIdentifier: record.messageId });
@@ -324,7 +393,7 @@ export const handler: SQSHandler = async (event) => {
 
   // Return batch item failures for SQS partial batch failure handling
   return {
-    batchItemFailures
+    batchItemFailures,
   };
 };
 

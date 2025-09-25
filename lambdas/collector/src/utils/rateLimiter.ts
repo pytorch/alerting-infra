@@ -48,7 +48,7 @@ export class RateLimiter {
 
     if (timeSinceLastCall < this.minInterval) {
       const waitTime = this.minInterval - timeSinceLastCall;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
 
     this.lastCallTime = Date.now();

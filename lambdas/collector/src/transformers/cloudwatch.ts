@@ -12,16 +12,21 @@ export class CloudWatchTransformer extends BaseTransformer {
       try {
         alarmData = JSON.parse(rawPayload);
       } catch (error) {
-        throw new Error(`Invalid CloudWatch payload: failed to parse JSON - ${error}. This indicates corrupted data from AWS. ${debugContext}`);
+        throw new Error(
+          `Invalid CloudWatch payload: failed to parse JSON - ${error}. This indicates corrupted data from AWS. ${debugContext}`,
+        );
       }
     } else if (rawPayload.Message) {
       // SNS message format
       try {
-        alarmData = typeof rawPayload.Message === "string"
-          ? JSON.parse(rawPayload.Message)
-          : rawPayload.Message;
+        alarmData =
+          typeof rawPayload.Message === "string"
+            ? JSON.parse(rawPayload.Message)
+            : rawPayload.Message;
       } catch (error) {
-        throw new Error(`Invalid CloudWatch SNS Message: failed to parse - ${error}. This indicates corrupted data from AWS. ${debugContext}`);
+        throw new Error(
+          `Invalid CloudWatch SNS Message: failed to parse - ${error}. This indicates corrupted data from AWS. ${debugContext}`,
+        );
       }
     } else {
       // Direct alarm data
@@ -29,35 +34,46 @@ export class CloudWatchTransformer extends BaseTransformer {
     }
 
     if (!alarmData || typeof alarmData !== "object") {
-      throw new Error(`Invalid CloudWatch alarm data: not an object. This indicates corrupted data from AWS. ${debugContext}`);
+      throw new Error(
+        `Invalid CloudWatch alarm data: not an object. This indicates corrupted data from AWS. ${debugContext}`,
+      );
     }
 
     // Extract core fields - fail fast for missing required fields
     if (!alarmData.AlarmName) {
-      throw new Error(`Missing required field "AlarmName" in CloudWatch alarm data. This indicates corrupted data from AWS. ${debugContext}`);
+      throw new Error(
+        `Missing required field "AlarmName" in CloudWatch alarm data. This indicates corrupted data from AWS. ${debugContext}`,
+      );
     }
     const title = this.normalizeTitle(alarmData.AlarmName);
     const state = this.extractState(alarmData, debugContext);
     const occurredAt = this.parseTimestamp(alarmData.StateChangeTime);
 
     // Parse AlarmDescription for metadata and description content
-    const descriptionParsed = this.parseAlarmDescription(alarmData.AlarmDescription || "");
+    const descriptionParsed = this.parseAlarmDescription(
+      alarmData.AlarmDescription || "",
+    );
 
     if (!descriptionParsed.metadata.PRIORITY) {
-      throw new Error(`Missing required field "PRIORITY" in CloudWatch AlarmDescription. Please add this to make the alert work. ${debugContext}`);
+      throw new Error(
+        `Missing required field "PRIORITY" in CloudWatch AlarmDescription. Please add this to make the alert work. ${debugContext}`,
+      );
     }
     if (!descriptionParsed.metadata.TEAM) {
-      throw new Error(`Missing required field "TEAM" in CloudWatch AlarmDescription. Please add this to make the alert work. ${debugContext}`);
+      throw new Error(
+        `Missing required field "TEAM" in CloudWatch AlarmDescription. Please add this to make the alert work. ${debugContext}`,
+      );
     }
 
     const priority = this.extractPriority(descriptionParsed.metadata.PRIORITY);
     const team = this.extractTeam(descriptionParsed.metadata.TEAM);
 
-
     // Build identity information
     const identity: AlertIdentity = {
       aws_account: this.safeString(alarmData.AWSAccountId),
-      region: this.extractRegionFromArn(alarmData.AlarmArn) || this.normalizeRegion(alarmData.Region || ""),
+      region:
+        this.extractRegionFromArn(alarmData.AlarmArn) ||
+        this.normalizeRegion(alarmData.Region || ""),
       alarm_arn: this.safeString(alarmData.AlarmArn),
     };
 
@@ -84,11 +100,16 @@ export class CloudWatchTransformer extends BaseTransformer {
     };
   }
 
-  private extractState(alarmData: any, debugContext: string): "FIRING" | "RESOLVED" {
+  private extractState(
+    alarmData: any,
+    debugContext: string,
+  ): "FIRING" | "RESOLVED" {
     const newState = alarmData.NewStateValue;
 
     if (!newState) {
-      throw new Error(`Missing required field "NewStateValue" in CloudWatch alarm data. This indicates corrupted data from AWS. ${debugContext}`);
+      throw new Error(
+        `Missing required field "NewStateValue" in CloudWatch alarm data. This indicates corrupted data from AWS. ${debugContext}`,
+      );
     }
 
     if (typeof newState === "string") {
@@ -97,10 +118,15 @@ export class CloudWatchTransformer extends BaseTransformer {
       if (normalized === "OK") return "RESOLVED";
     }
 
-    throw new Error(`Invalid NewStateValue: '${newState}'. Expected 'ALARM' or 'OK'. This may indicate corrupted data from AWS. ${debugContext}`);
+    throw new Error(
+      `Invalid NewStateValue: '${newState}'. Expected 'ALARM' or 'OK'. This may indicate corrupted data from AWS. ${debugContext}`,
+    );
   }
 
-  private parseAlarmDescription(description: string): { metadata: Record<string, string>; description: string } {
+  private parseAlarmDescription(description: string): {
+    metadata: Record<string, string>;
+    description: string;
+  } {
     const metadata: Record<string, string> = {};
     const descriptionLines: string[] = [];
 
@@ -110,17 +136,25 @@ export class CloudWatchTransformer extends BaseTransformer {
 
     // Security: Limit description length to prevent DoS attacks
     if (description.length > 4096) {
-      throw new Error(`AlarmDescription too long (max 4096 characters, got ${description.length}).`);
+      throw new Error(
+        `AlarmDescription too long (max 4096 characters, got ${description.length}).`,
+      );
     }
 
     // Parse newline-separated format: "Body\nTEAM=team\nPRIORITY=P1\nRUNBOOK=https://..."
     // Also support legacy pipe-separated format for backward compatibility
-    const lines = description.includes('\n')
-      ? description.split('\n').map(line => line.trim()).slice(0, 20) // Limit number of lines
-      : description.split('|').map(pair => pair.trim()).slice(0, 10);
+    const lines = description.includes("\n")
+      ? description
+          .split("\n")
+          .map((line) => line.trim())
+          .slice(0, 20) // Limit number of lines
+      : description
+          .split("|")
+          .map((pair) => pair.trim())
+          .slice(0, 10);
 
     // Whitelist of allowed keys to prevent injection
-    const ALLOWED_KEYS = ['TEAM', 'PRIORITY', 'RUNBOOK', 'SUMMARY'];
+    const ALLOWED_KEYS = ["TEAM", "PRIORITY", "RUNBOOK", "SUMMARY"];
 
     for (const line of lines) {
       // Skip empty lines
@@ -129,20 +163,22 @@ export class CloudWatchTransformer extends BaseTransformer {
       }
 
       // Check if this is a metadata line (X=Y format)
-      if (line.includes('=')) {
-        const [key, ...valueParts] = line.split('=');
+      if (line.includes("=")) {
+        const [key, ...valueParts] = line.split("=");
         if (key && valueParts.length > 0) {
           const sanitizedKey = key.trim().toUpperCase();
 
           // Security: Only allow whitelisted keys
           if (ALLOWED_KEYS.includes(sanitizedKey)) {
-            const rawValue = valueParts.join('=').trim();
+            const rawValue = valueParts.join("=").trim();
             // Security: Sanitize and limit value length
             const sanitizedValue = this.sanitizeString(rawValue, 255);
             metadata[sanitizedKey] = sanitizedValue;
           } else {
             // Non-whitelisted X=Y lines are treated as description content
-            console.warn(`Non-whitelisted key in AlarmDescription treated as description: ${sanitizedKey}`);
+            console.warn(
+              `Non-whitelisted key in AlarmDescription treated as description: ${sanitizedKey}`,
+            );
             descriptionLines.push(this.sanitizeString(line, 500));
           }
         }
@@ -154,11 +190,9 @@ export class CloudWatchTransformer extends BaseTransformer {
 
     return {
       metadata,
-      description: descriptionLines.join(' ').trim() || ""
+      description: descriptionLines.join(" ").trim() || "",
     };
   }
-
-
 
   private buildConsoleUrl(alarmData: any): string | undefined {
     const alarmName = alarmData.AlarmName;
@@ -168,7 +202,9 @@ export class CloudWatchTransformer extends BaseTransformer {
     }
 
     // Extract region from ARN first, fallback to display name
-    const regionCode = this.extractRegionFromArn(alarmData.AlarmArn) || this.normalizeRegion(alarmData.Region || "");
+    const regionCode =
+      this.extractRegionFromArn(alarmData.AlarmArn) ||
+      this.normalizeRegion(alarmData.Region || "");
 
     if (regionCode) {
       const encodedAlarmName = encodeURIComponent(alarmName);
@@ -222,11 +258,20 @@ export class CloudWatchTransformer extends BaseTransformer {
     // Extract alarm data from various formats
     let alarmData: any;
     if (typeof rawPayload === "string") {
-      try { alarmData = JSON.parse(rawPayload); } catch { /* ignore */ }
+      try {
+        alarmData = JSON.parse(rawPayload);
+      } catch {
+        /* ignore */
+      }
     } else if (rawPayload?.Message) {
       try {
-        alarmData = typeof rawPayload.Message === "string" ? JSON.parse(rawPayload.Message) : rawPayload.Message;
-      } catch { /* ignore */ }
+        alarmData =
+          typeof rawPayload.Message === "string"
+            ? JSON.parse(rawPayload.Message)
+            : rawPayload.Message;
+      } catch {
+        /* ignore */
+      }
     } else {
       alarmData = rawPayload;
     }

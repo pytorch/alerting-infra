@@ -1,7 +1,13 @@
-import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
 import jwt from "jsonwebtoken";
 import { RateLimiter } from "../utils/rateLimiter";
-import { CircuitBreaker, GITHUB_CIRCUIT_BREAKER_CONFIG } from "../utils/circuitBreaker";
+import {
+  CircuitBreaker,
+  GITHUB_CIRCUIT_BREAKER_CONFIG,
+} from "../utils/circuitBreaker";
 
 export interface GithubAppSecret {
   github_app_client_id?: string;
@@ -29,7 +35,11 @@ export class GitHubClient {
   private readonly githubRepo: string;
   private readonly githubAppSecretId: string;
 
-  constructor(githubRepo: string, githubAppSecretId: string, requestsPerSecond: number = 10) {
+  constructor(
+    githubRepo: string,
+    githubAppSecretId: string,
+    requestsPerSecond: number = 10,
+  ) {
     this.githubRepo = githubRepo;
     this.githubAppSecretId = githubAppSecretId;
     this.rateLimiter = new RateLimiter(requestsPerSecond);
@@ -54,14 +64,17 @@ export class GitHubClient {
 
     try {
       const res = await this.secrets.send(
-        new GetSecretValueCommand({ SecretId: this.githubAppSecretId })
+        new GetSecretValueCommand({ SecretId: this.githubAppSecretId }),
       );
       const secretString = res.SecretString;
-      if (!secretString) throw new Error("SecretString empty for GitHub App secret");
+      if (!secretString)
+        throw new Error("SecretString empty for GitHub App secret");
 
       const parsed = JSON.parse(secretString) as GithubAppSecret;
       if (!parsed.github_app_id || !parsed.github_app_key_base64) {
-        throw new Error("GitHub App secret missing required fields (github_app_id, github_app_key_base64)");
+        throw new Error(
+          "GitHub App secret missing required fields (github_app_id, github_app_key_base64)",
+        );
       }
 
       // Cache secret TTL to 5 minutes for security
@@ -82,29 +95,32 @@ export class GitHubClient {
     const pem = Buffer.from(pemKeyBase64, "base64").toString("utf8");
     const iat = this.nowEpochSeconds() - 30; // clock skew
     const exp = iat + 9 * 60; // 9 minutes
-    return jwt.sign(
-      { iat, exp, iss: appId },
-      pem,
-      { algorithm: "RS256" }
-    );
+    return jwt.sign({ iat, exp, iss: appId }, pem, { algorithm: "RS256" });
   }
 
   private async getInstallationToken(): Promise<string> {
     // reuse cached token if valid for >60s
-    if (this.cachedInstallationToken && this.cachedInstallationToken.expiresAt - this.nowEpochSeconds() > 60) {
+    if (
+      this.cachedInstallationToken &&
+      this.cachedInstallationToken.expiresAt - this.nowEpochSeconds() > 60
+    ) {
       return this.cachedInstallationToken.token;
     }
     if (!this.githubRepo) throw new Error("GITHUB_REPO not set");
     const [owner, repo] = this.githubRepo.split("/");
-    if (!owner || !repo) throw new Error("GITHUB_REPO must be in the form org/repo");
+    if (!owner || !repo)
+      throw new Error("GITHUB_REPO must be in the form org/repo");
     const secret = await this.loadGithubSecret();
-    const appJwt = this.buildAppJwt(secret.github_app_id, secret.github_app_key_base64);
+    const appJwt = this.buildAppJwt(
+      secret.github_app_id,
+      secret.github_app_key_base64,
+    );
 
     const ghHeaders = {
       Authorization: `Bearer ${appJwt}`,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "pytorch-alerting"
+      "User-Agent": "pytorch-alerting",
     } as const;
 
     // Discover installation id for the repo
@@ -112,7 +128,7 @@ export class GitHubClient {
       fetch(`https://api.github.com/repos/${owner}/${repo}/installation`, {
         method: "GET",
         headers: ghHeaders,
-      })
+      }),
     );
     if (instResp.status === 404) {
       throw new Error(`GitHub App is not installed on ${this.githubRepo}`);
@@ -122,21 +138,27 @@ export class GitHubClient {
       const errorInfo = `${instResp.status} ${instResp.statusText}`;
       throw new Error(`Failed to get installation: ${errorInfo}`);
     }
-    const instData = await instResp.json() as { id: number };
+    const instData = (await instResp.json()) as { id: number };
 
     // Mint installation token
     const tokenResp = await this.rateLimiter.execute(async () =>
-      fetch(`https://api.github.com/app/installations/${instData.id}/access_tokens`, {
-        method: "POST",
-        headers: ghHeaders,
-      })
+      fetch(
+        `https://api.github.com/app/installations/${instData.id}/access_tokens`,
+        {
+          method: "POST",
+          headers: ghHeaders,
+        },
+      ),
     );
     if (!tokenResp.ok) {
       // Security: Don't log full response body which might contain sensitive data
       const errorInfo = `${tokenResp.status} ${tokenResp.statusText}`;
       throw new Error(`Failed to create installation token: ${errorInfo}`);
     }
-    const tokenData = await tokenResp.json() as { token: string; expires_at: string };
+    const tokenData = (await tokenResp.json()) as {
+      token: string;
+      expires_at: string;
+    };
     this.cachedInstallationToken = {
       token: tokenData.token,
       expiresAt: Math.floor(new Date(tokenData.expires_at).getTime() / 1000),
@@ -144,18 +166,27 @@ export class GitHubClient {
     return this.cachedInstallationToken.token;
   }
 
-  async ensureGithubLabel(owner: string, repo: string, token: string, labelName: string, color: string = "0969da"): Promise<void> {
+  async ensureGithubLabel(
+    owner: string,
+    repo: string,
+    token: string,
+    labelName: string,
+    color: string = "0969da",
+  ): Promise<void> {
     // Check if label exists
     const checkResp = await this.rateLimiter.execute(async () =>
-      fetch(`https://api.github.com/repos/${owner}/${repo}/labels/${encodeURIComponent(labelName)}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-          "User-Agent": "pytorch-alerting",
+      fetch(
+        `https://api.github.com/repos/${owner}/${repo}/labels/${encodeURIComponent(labelName)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "pytorch-alerting",
+          },
         },
-      })
+      ),
     );
 
     if (checkResp.status === 404) {
@@ -175,7 +206,7 @@ export class GitHubClient {
             color: color,
             description: `Alert label for ${labelName}`,
           }),
-        })
+        }),
       );
 
       if (!createResp.ok) {
@@ -193,21 +224,28 @@ export class GitHubClient {
     }
   }
 
-  async createGithubIssue(title: string, body: string, labels: string[]): Promise<number> {
+  async createGithubIssue(
+    title: string,
+    body: string,
+    labels: string[],
+  ): Promise<number> {
     // CIRCUIT BREAKER: Protect against GitHub API failures
     return await this.circuitBreaker.execute(
       async () => this.createGithubIssueInternal(title, body, labels),
       async () => {
         // Fallback: Log the issue details for manual processing
         // TODO: Mark the alert in the db as needing to be retried later
-        console.warn('GitHub API circuit breaker OPEN - logging issue for manual processing', {
-          title,
-          labels,
-          circuitStatus: this.circuitBreaker.getStatus()
-        });
+        console.warn(
+          "GitHub API circuit breaker OPEN - logging issue for manual processing",
+          {
+            title,
+            labels,
+            circuitStatus: this.circuitBreaker.getStatus(),
+          },
+        );
         // Return a fake issue number to indicate fallback mode
         return -1;
-      }
+      },
     );
   }
 
@@ -217,34 +255,47 @@ export class GitHubClient {
       async () => this.closeGithubIssueInternal(issueNumber),
       async () => {
         // Fallback: Log the close request for manual processing
-        console.warn('GitHub API circuit breaker OPEN - logging issue close for manual processing', {
-          issueNumber,
-          circuitStatus: this.circuitBreaker.getStatus()
-        });
+        console.warn(
+          "GitHub API circuit breaker OPEN - logging issue close for manual processing",
+          {
+            issueNumber,
+            circuitStatus: this.circuitBreaker.getStatus(),
+          },
+        );
         // Return false to indicate fallback mode
         return false;
-      }
+      },
     );
   }
 
-  async commentOnGithubIssue(issueNumber: number, comment: string): Promise<boolean> {
+  async commentOnGithubIssue(
+    issueNumber: number,
+    comment: string,
+  ): Promise<boolean> {
     // CIRCUIT BREAKER: Protect against GitHub API failures
     return await this.circuitBreaker.execute(
       async () => this.commentOnGithubIssueInternal(issueNumber, comment),
       async () => {
         // Fallback: Log the comment request for manual processing
-        console.warn('GitHub API circuit breaker OPEN - logging issue comment for manual processing', {
-          issueNumber,
-          comment: comment.substring(0, 100) + '...', // Truncate for logging
-          circuitStatus: this.circuitBreaker.getStatus()
-        });
+        console.warn(
+          "GitHub API circuit breaker OPEN - logging issue comment for manual processing",
+          {
+            issueNumber,
+            comment: comment.substring(0, 100) + "...", // Truncate for logging
+            circuitStatus: this.circuitBreaker.getStatus(),
+          },
+        );
         // Return false to indicate fallback mode
         return false;
-      }
+      },
     );
   }
 
-  private async createGithubIssueInternal(title: string, body: string, labels: string[]): Promise<number> {
+  private async createGithubIssueInternal(
+    title: string,
+    body: string,
+    labels: string[],
+  ): Promise<number> {
     if (!this.githubRepo) throw new Error("GITHUB_REPO not set");
     const [owner, repo] = this.githubRepo.split("/");
     const token = await this.getInstallationToken();
@@ -260,34 +311,39 @@ export class GitHubClient {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ title, body, labels }),
-      })
+      }),
     );
     if (!resp.ok) {
       // Security: Don't log full response body which might contain sensitive data
       const errorInfo = `${resp.status} ${resp.statusText}`;
       throw new Error(`Failed to create issue: ${errorInfo}`);
     }
-    const data = await resp.json() as { number: number };
+    const data = (await resp.json()) as { number: number };
     return data.number;
   }
 
-  private async closeGithubIssueInternal(issueNumber: number): Promise<boolean> {
+  private async closeGithubIssueInternal(
+    issueNumber: number,
+  ): Promise<boolean> {
     if (!this.githubRepo) throw new Error("GITHUB_REPO not set");
     const [owner, repo] = this.githubRepo.split("/");
     const token = await this.getInstallationToken();
 
     const resp = await this.rateLimiter.execute(async () =>
-      fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-          "User-Agent": "pytorch-alerting",
-          "Content-Type": "application/json",
+      fetch(
+        `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "pytorch-alerting",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ state: "closed" }),
         },
-        body: JSON.stringify({ state: "closed" }),
-      })
+      ),
     );
     if (!resp.ok) {
       // Security: Don't log full response body which might contain sensitive data
@@ -297,28 +353,36 @@ export class GitHubClient {
     return true;
   }
 
-  private async commentOnGithubIssueInternal(issueNumber: number, comment: string): Promise<boolean> {
+  private async commentOnGithubIssueInternal(
+    issueNumber: number,
+    comment: string,
+  ): Promise<boolean> {
     if (!this.githubRepo) throw new Error("GITHUB_REPO not set");
     const [owner, repo] = this.githubRepo.split("/");
     const token = await this.getInstallationToken();
 
     const resp = await this.rateLimiter.execute(async () =>
-      fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-          "User-Agent": "pytorch-alerting",
-          "Content-Type": "application/json",
+      fetch(
+        `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "pytorch-alerting",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ body: comment }),
         },
-        body: JSON.stringify({ body: comment }),
-      })
+      ),
     );
     if (!resp.ok) {
       // Security: Don't log full response body which might contain sensitive data
       const errorInfo = `${resp.status} ${resp.statusText}`;
-      throw new Error(`Failed to comment on issue #${issueNumber}: ${errorInfo}`);
+      throw new Error(
+        `Failed to comment on issue #${issueNumber}: ${errorInfo}`,
+      );
     }
     return true;
   }

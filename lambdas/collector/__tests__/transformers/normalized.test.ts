@@ -19,22 +19,22 @@ describe("NormalizedTransformer", () => {
     identity: {
       aws_account: "123456789012",
       region: "us-west-2",
-      rule_id: "cpu-high-alert"
+      rule_id: "cpu-high-alert",
     },
     links: {
       runbook_url: "https://wiki.company.com/runbooks/cpu",
       dashboard_url: "https://dashboard.company.com/cpu",
-      source_url: "https://datadog.com/monitors/12345"
+      source_url: "https://datadog.com/monitors/12345",
     },
     raw_provider: {
-      monitor_id: 12345
-    }
+      monitor_id: 12345,
+    },
   };
 
   const mockEnvelope: Envelope = {
     event_id: "test-event-123",
     source: "normalized",
-    timestamp: "2024-01-15T10:30:00.000Z"
+    timestamp: "2024-01-15T10:30:00.000Z",
   };
 
   describe("transform", () => {
@@ -52,7 +52,7 @@ describe("NormalizedTransformer", () => {
     it("should handle RESOLVED state", () => {
       const resolvedAlert = {
         ...validNormalizedAlert,
-        state: "RESOLVED" as const
+        state: "RESOLVED" as const,
       };
       const result = transformer.transform(resolvedAlert, mockEnvelope);
 
@@ -62,10 +62,10 @@ describe("NormalizedTransformer", () => {
     it("should handle all priority levels", () => {
       const priorities = ["P0", "P1", "P2", "P3"] as const;
 
-      priorities.forEach(priority => {
+      priorities.forEach((priority) => {
         const alert = {
           ...validNormalizedAlert,
-          priority
+          priority,
         };
         const result = transformer.transform(alert, mockEnvelope);
 
@@ -78,7 +78,7 @@ describe("NormalizedTransformer", () => {
         ...validNormalizedAlert,
         description: undefined,
         summary: undefined,
-        reason: undefined
+        reason: undefined,
       };
       delete minimalAlert.description;
       delete minimalAlert.summary;
@@ -95,23 +95,24 @@ describe("NormalizedTransformer", () => {
   describe("JSON Schema validation errors", () => {
     it("should throw error for missing required fields", () => {
       const requiredFields = [
-        'schema_version',
-        'source',
-        'state',
-        'title',
-        'priority',
-        'occurred_at',
-        'team',
-        'identity',
-        'links'
+        "schema_version",
+        "source",
+        "state",
+        "title",
+        "priority",
+        "occurred_at",
+        "team",
+        "identity",
+        "links",
       ];
 
-      requiredFields.forEach(field => {
+      requiredFields.forEach((field) => {
         const invalidAlert = { ...validNormalizedAlert };
         delete (invalidAlert as any)[field];
 
-        expect(() => transformer.transform(invalidAlert, mockEnvelope))
-          .toThrow(/AlertEvent validation failed/);
+        expect(() => transformer.transform(invalidAlert, mockEnvelope)).toThrow(
+          /AlertEvent validation failed/,
+        );
       });
     });
 
@@ -119,57 +120,61 @@ describe("NormalizedTransformer", () => {
       const invalidAlerts = [
         { ...validNormalizedAlert, schema_version: 0 },
         { ...validNormalizedAlert, schema_version: -1 },
-        { ...validNormalizedAlert, schema_version: "1" }
+        { ...validNormalizedAlert, schema_version: "1" },
       ];
 
-      invalidAlerts.forEach(alert => {
-        expect(() => transformer.transform(alert, mockEnvelope))
-          .toThrow(/AlertEvent validation failed/);
+      invalidAlerts.forEach((alert) => {
+        expect(() => transformer.transform(alert, mockEnvelope)).toThrow(
+          /AlertEvent validation failed/,
+        );
       });
     });
 
     it("should throw error for invalid state", () => {
       const invalidAlert = {
         ...validNormalizedAlert,
-        state: "INVALID_STATE"
+        state: "INVALID_STATE",
       };
 
-      expect(() => transformer.transform(invalidAlert, mockEnvelope))
-        .toThrow(/AlertEvent validation failed/);
+      expect(() => transformer.transform(invalidAlert, mockEnvelope)).toThrow(
+        /AlertEvent validation failed/,
+      );
     });
 
     it("should throw error for invalid priority", () => {
       const invalidAlert = {
         ...validNormalizedAlert,
-        priority: "P5"
+        priority: "P5",
       };
 
-      expect(() => transformer.transform(invalidAlert, mockEnvelope))
-        .toThrow(/AlertEvent validation failed/);
+      expect(() => transformer.transform(invalidAlert, mockEnvelope)).toThrow(
+        /AlertEvent validation failed/,
+      );
     });
-
 
     it("should throw error for invalid identity structure", () => {
       const invalidAlerts = [
         { ...validNormalizedAlert, identity: null },
-        { ...validNormalizedAlert, identity: "string" }
+        { ...validNormalizedAlert, identity: "string" },
       ];
 
-      invalidAlerts.forEach(alert => {
-        expect(() => transformer.transform(alert, mockEnvelope))
-          .toThrow(/AlertEvent validation failed/);
+      invalidAlerts.forEach((alert) => {
+        expect(() => transformer.transform(alert, mockEnvelope)).toThrow(
+          /AlertEvent validation failed/,
+        );
       });
     });
 
     it("should throw error for invalid links structure", () => {
       const invalidAlerts = [
         { ...validNormalizedAlert, links: null },
-        { ...validNormalizedAlert, links: "string" }
+        { ...validNormalizedAlert, links: "string" },
       ];
 
-      invalidAlerts.forEach(alert => {
-        expect(() => transformer.transform(alert, mockEnvelope))
-          .toThrow(/AlertEvent validation failed/);
+      invalidAlerts.forEach((alert) => {
+        expect(() => transformer.transform(alert, mockEnvelope)).toThrow(
+          /AlertEvent validation failed/,
+        );
       });
     });
 
@@ -177,12 +182,13 @@ describe("NormalizedTransformer", () => {
       const invalidAlerts = [
         { ...validNormalizedAlert, occurred_at: "invalid-date" },
         { ...validNormalizedAlert, occurred_at: "2024-01-15" }, // not ISO8601
-        { ...validNormalizedAlert, occurred_at: "2024-01-15T10:30:00" } // missing timezone
+        { ...validNormalizedAlert, occurred_at: "2024-01-15T10:30:00" }, // missing timezone
       ];
 
-      invalidAlerts.forEach(alert => {
-        expect(() => transformer.transform(alert, mockEnvelope))
-          .toThrow(/AlertEvent validation failed/);
+      invalidAlerts.forEach((alert) => {
+        expect(() => transformer.transform(alert, mockEnvelope)).toThrow(
+          /AlertEvent validation failed/,
+        );
       });
     });
 
@@ -190,28 +196,29 @@ describe("NormalizedTransformer", () => {
       const longTitle = "x".repeat(501); // exceeds 500 char limit
       const invalidAlert = {
         ...validNormalizedAlert,
-        title: longTitle
+        title: longTitle,
       };
 
-      expect(() => transformer.transform(invalidAlert, mockEnvelope))
-        .toThrow(/AlertEvent validation failed/);
+      expect(() => transformer.transform(invalidAlert, mockEnvelope)).toThrow(
+        /AlertEvent validation failed/,
+      );
     });
-
 
     it("should throw error for invalid source format", () => {
       const invalidAlert = {
         ...validNormalizedAlert,
-        source: "invalid-source-with-spaces and-special-chars!"
+        source: "invalid-source-with-spaces and-special-chars!",
       };
 
-      expect(() => transformer.transform(invalidAlert, mockEnvelope))
-        .toThrow(/AlertEvent validation failed/);
+      expect(() => transformer.transform(invalidAlert, mockEnvelope)).toThrow(
+        /AlertEvent validation failed/,
+      );
     });
 
     it("should include helpful error context", () => {
       const invalidAlert = {
         ...validNormalizedAlert,
-        priority: "P5"
+        priority: "P5",
       };
 
       try {
@@ -220,7 +227,9 @@ describe("NormalizedTransformer", () => {
       } catch (error) {
         const errorMessage = (error as Error).message;
         expect(errorMessage).toMatch(/AlertEvent validation failed/);
-        expect(errorMessage).toMatch(/github\.com\/pytorch\/test-infra-alerting/);
+        expect(errorMessage).toMatch(
+          /github\.com\/pytorch\/test-infra-alerting/,
+        );
       }
     });
   });
@@ -229,19 +238,18 @@ describe("NormalizedTransformer", () => {
     it("should handle empty raw_provider", () => {
       const alert = {
         ...validNormalizedAlert,
-        raw_provider: {}
+        raw_provider: {},
       };
       const result = transformer.transform(alert, mockEnvelope);
 
       expect(result.raw_provider).toEqual({});
     });
 
-
     it("should handle empty identity and links objects", () => {
       const alert = {
         ...validNormalizedAlert,
         identity: {},
-        links: {}
+        links: {},
       };
       const result = transformer.transform(alert, mockEnvelope);
 

@@ -1,11 +1,16 @@
-import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { AlertState, AlertEvent, AlertAction } from "./types";
 import { createHash } from "crypto";
 
 export class AlertStateManager {
   constructor(
     private readonly ddbClient: DynamoDBDocumentClient,
-    private readonly tableName: string
+    private readonly tableName: string,
   ) {}
 
   // Load existing alert state by fingerprint
@@ -15,7 +20,7 @@ export class AlertStateManager {
         new GetCommand({
           TableName: this.tableName,
           Key: { fingerprint },
-        })
+        }),
       );
 
       if (!result.Item) {
@@ -24,9 +29,11 @@ export class AlertStateManager {
 
       // Basic validation of required fields
       const item = result.Item;
-      if (typeof item.fingerprint !== 'string' ||
-          typeof item.status !== 'string' ||
-          typeof item.team !== 'string') {
+      if (
+        typeof item.fingerprint !== "string" ||
+        typeof item.status !== "string" ||
+        typeof item.team !== "string"
+      ) {
         console.error("Invalid AlertState structure in DynamoDB", {
           fingerprint,
           itemKeys: Object.keys(item),
@@ -49,7 +56,7 @@ export class AlertStateManager {
     fingerprint: string,
     alertEvent: AlertEvent,
     action: AlertAction,
-    issueNumber?: number
+    issueNumber?: number,
   ): Promise<void> {
     const now = new Date().toISOString();
     const ttlExpiresAt = this.calculateTTL();
@@ -79,7 +86,7 @@ export class AlertStateManager {
           Item: alertState,
           // Prevent overwriting existing records
           ConditionExpression: "attribute_not_exists(fingerprint)",
-        })
+        }),
       );
 
       console.log("Alert state saved", {
@@ -91,7 +98,12 @@ export class AlertStateManager {
     } catch (error) {
       if ((error as any).name === "ConditionalCheckFailedException") {
         // Alert already exists, update it instead
-        await this.updateExistingState(fingerprint, alertEvent, action, issueNumber);
+        await this.updateExistingState(
+          fingerprint,
+          alertEvent,
+          action,
+          issueNumber,
+        );
       } else {
         console.error("Failed to save alert state", {
           fingerprint,
@@ -105,7 +117,7 @@ export class AlertStateManager {
   // Update existing alert state
   async updateState(
     fingerprint: string,
-    updates: Partial<AlertState>
+    updates: Partial<AlertState>,
   ): Promise<void> {
     const updateExpression: string[] = [];
     const expressionAttributeNames: Record<string, string> = {};
@@ -133,7 +145,7 @@ export class AlertStateManager {
           UpdateExpression: "SET " + updateExpression.join(", "),
           ExpressionAttributeNames: expressionAttributeNames,
           ExpressionAttributeValues: expressionAttributeValues,
-        })
+        }),
       );
 
       console.log("Alert state updated", { fingerprint, updates });
@@ -152,7 +164,7 @@ export class AlertStateManager {
     fingerprint: string,
     alertEvent: AlertEvent,
     action: AlertAction,
-    issueNumber?: number
+    issueNumber?: number,
   ): Promise<void> {
     const maxRetries = 3;
     let retryCount = 0;
@@ -163,7 +175,9 @@ export class AlertStateManager {
         const currentState = await this.loadState(fingerprint);
         if (!currentState) {
           // State was deleted between operations - this is rare but possible
-          console.warn(`Alert state ${fingerprint} no longer exists during update, skipping`);
+          console.warn(
+            `Alert state ${fingerprint} no longer exists during update, skipping`,
+          );
           return;
         }
 
@@ -172,7 +186,9 @@ export class AlertStateManager {
         const incomingTime = new Date(alertEvent.occurred_at);
 
         if (incomingTime < currentTime) {
-          console.log(`Out-of-order update detected for ${fingerprint}, skipping`);
+          console.log(
+            `Out-of-order update detected for ${fingerprint}, skipping`,
+          );
           return;
         }
 
@@ -193,21 +209,32 @@ export class AlertStateManager {
         }
 
         // Use conditional update to prevent race conditions
-        await this.updateStateConditional(fingerprint, updates, currentState.last_provider_state_at);
+        await this.updateStateConditional(
+          fingerprint,
+          updates,
+          currentState.last_provider_state_at,
+        );
         return; // Success, exit retry loop
-
       } catch (error) {
         retryCount++;
 
         if ((error as any).name === "ConditionalCheckFailedException") {
           if (retryCount < maxRetries) {
-            console.log(`Conditional update failed for ${fingerprint}, retrying (${retryCount}/${maxRetries})`);
+            console.log(
+              `Conditional update failed for ${fingerprint}, retrying (${retryCount}/${maxRetries})`,
+            );
             // Exponential backoff: 100ms, 200ms, 400ms
-            await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount - 1)));
+            await new Promise((resolve) =>
+              setTimeout(resolve, 100 * Math.pow(2, retryCount - 1)),
+            );
             continue;
           } else {
-            console.error(`Failed to update ${fingerprint} after ${maxRetries} retries due to concurrent modifications`);
-            throw new Error(`Update failed after ${maxRetries} retries - concurrent modification detected`);
+            console.error(
+              `Failed to update ${fingerprint} after ${maxRetries} retries due to concurrent modifications`,
+            );
+            throw new Error(
+              `Update failed after ${maxRetries} retries - concurrent modification detected`,
+            );
           }
         } else {
           // Non-conditional error, don't retry
@@ -221,7 +248,7 @@ export class AlertStateManager {
   private async updateStateConditional(
     fingerprint: string,
     updates: Partial<AlertState>,
-    expectedLastUpdate: string
+    expectedLastUpdate: string,
   ): Promise<void> {
     const updateExpression: string[] = [];
     const expressionAttributeNames: Record<string, string> = {};
@@ -242,7 +269,8 @@ export class AlertStateManager {
     expressionAttributeValues[":last_seen_at"] = new Date().toISOString();
 
     // Add condition for optimistic locking
-    expressionAttributeNames["#last_provider_state_at"] = "last_provider_state_at";
+    expressionAttributeNames["#last_provider_state_at"] =
+      "last_provider_state_at";
     expressionAttributeValues[":expected_last_update"] = expectedLastUpdate;
 
     await this.ddbClient.send(
@@ -253,10 +281,13 @@ export class AlertStateManager {
         ConditionExpression: "#last_provider_state_at = :expected_last_update",
         ExpressionAttributeNames: expressionAttributeNames,
         ExpressionAttributeValues: expressionAttributeValues,
-      })
+      }),
     );
 
-    console.log("Alert state updated with optimistic locking", { fingerprint, updates });
+    console.log("Alert state updated with optimistic locking", {
+      fingerprint,
+      updates,
+    });
   }
 
   // Calculate TTL (3 years from now in epoch seconds)

@@ -25,21 +25,31 @@ export abstract class BaseTransformer {
     if (normalized === "2") return "P2";
     if (normalized === "3") return "P3";
 
-    throw new Error(`Invalid priority value: '${input}'. Expected P0, P1, P2, P3, or 0-3.`);
+    throw new Error(
+      `Invalid priority value: '${input}'. Expected P0, P1, P2, P3, or 0-3.`,
+    );
   }
 
   // Normalize title by trimming whitespace
   protected normalizeTitle(title: string): string {
-    if (!title) throw new Error("Alert title is empty or missing. This indicates corrupted data from the provider.");
+    if (!title)
+      throw new Error(
+        "Alert title is empty or missing. This indicates corrupted data from the provider.",
+      );
     return title.trim();
   }
 
   // Parse timestamp to ISO8601 format with strict validation
   // TODO: Consider if it actually makes sense to default to current time if input was invalid
-  protected parseTimestamp(input: string | Date, required: boolean = false): string {
+  protected parseTimestamp(
+    input: string | Date,
+    required: boolean = false,
+  ): string {
     if (!input) {
       if (required) {
-        throw new Error("Required timestamp field is missing. This indicates corrupted data from the provider.");
+        throw new Error(
+          "Required timestamp field is missing. This indicates corrupted data from the provider.",
+        );
       }
       return new Date().toISOString();
     }
@@ -47,7 +57,9 @@ export abstract class BaseTransformer {
     if (typeof input === "string") {
       // Security: Validate timestamp format to prevent injection
       if (input.length > 50) {
-        throw new Error(`Timestamp string too long (max 50 characters): '${input.substring(0, 50)}...'. This may indicate corrupted data.`);
+        throw new Error(
+          `Timestamp string too long (max 50 characters): '${input.substring(0, 50)}...'. This may indicate corrupted data.`,
+        );
       }
 
       const parsed = new Date(input);
@@ -56,7 +68,9 @@ export abstract class BaseTransformer {
       // since this is meant to be a data sanity check, not a strict business policy.
       if (isNaN(parsed.getTime())) {
         if (required) {
-          throw new Error(`Invalid timestamp format: '${input}'. Expected ISO8601 format. This may indicate corrupted data from the provider.`);
+          throw new Error(
+            `Invalid timestamp format: '${input}'. Expected ISO8601 format. This may indicate corrupted data from the provider.`,
+          );
         }
         console.warn(`Invalid timestamp format, using current time: ${input}`);
         return new Date().toISOString();
@@ -64,13 +78,23 @@ export abstract class BaseTransformer {
 
       // Security: Ensure timestamp is within reasonable bounds (not too far in past/future)
       const now = new Date();
-      const tenYearsAgo = new Date(now.getFullYear() - 10, now.getMonth(), now.getDate());
-      const oneYearFromNow = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+      const tenYearsAgo = new Date(
+        now.getFullYear() - 10,
+        now.getMonth(),
+        now.getDate(),
+      );
+      const oneYearFromNow = new Date(
+        now.getFullYear() + 1,
+        now.getMonth(),
+        now.getDate(),
+      );
 
       if (parsed < tenYearsAgo || parsed > oneYearFromNow) {
         let msg = `Timestamp outside reasonable bounds: ${input}`;
         if (required) {
-          throw new Error(`${msg}. Timestamp is too far away from the present. This may indicate corrupted data from the provider.`);
+          throw new Error(
+            `${msg}. Timestamp is too far away from the present. This may indicate corrupted data from the provider.`,
+          );
         }
         msg += ", using current time";
         console.warn(msg);
@@ -82,12 +106,16 @@ export abstract class BaseTransformer {
 
     if (input instanceof Date) {
       if (isNaN(input.getTime())) {
-        throw new Error("Invalid Date object provided (contains NaN). This indicates corrupted data from the provider.");
+        throw new Error(
+          "Invalid Date object provided (contains NaN). This indicates corrupted data from the provider.",
+        );
       }
       return input.toISOString();
     }
 
-    throw new Error(`Invalid timestamp type: '${typeof input}'. Expected string or Date object. This indicates corrupted data from the provider.`);
+    throw new Error(
+      `Invalid timestamp type: '${typeof input}'. Expected string or Date object. This indicates corrupted data from the provider.`,
+    );
   }
 
   // Extract team from string - fail fast for missing values
@@ -96,7 +124,7 @@ export abstract class BaseTransformer {
       throw new Error("Team field is empty or missing");
     }
     // Replaces spaces with hyphens for tooling compatibility
-    return input.trim().toLowerCase().replace(/\s+/g, '-');
+    return input.trim().toLowerCase().replace(/\s+/g, "-");
   }
 
   // Safe string extraction with fallback
@@ -116,11 +144,11 @@ export abstract class BaseTransformer {
 
     // Remove potentially dangerous characters and control characters
     sanitized = sanitized
-      .replace(/[<>\"'&\x00-\x1F\x7F]/g, '') // Remove HTML entities and control chars
-      .replace(/javascript:/gi, '') // Remove javascript: protocol
-      .replace(/data:/gi, '') // Remove data: protocol
-      .replace(/vbscript:/gi, '') // Remove vbscript: protocol
-      .replace(/on\w+=/gi, '') // Remove event handlers like onclick=
+      .replace(/[<>\"'&\x00-\x1F\x7F]/g, "") // Remove HTML entities and control chars
+      .replace(/javascript:/gi, "") // Remove javascript: protocol
+      .replace(/data:/gi, "") // Remove data: protocol
+      .replace(/vbscript:/gi, "") // Remove vbscript: protocol
+      .replace(/on\w+=/gi, "") // Remove event handlers like onclick=
       .substring(0, maxLength)
       .trim();
 
@@ -149,7 +177,7 @@ export abstract class BaseTransformer {
       } catch (firstParseError) {
         // If parsing fails and URL doesn't contain any protocol, try prepending https
         // This allows simple hostnames like "www.example.com" to be accepted
-        if (!urlToValidate.includes('://')) {
+        if (!urlToValidate.includes("://")) {
           urlToValidate = `https://${urlToValidate}`;
           parsed = new URL(urlToValidate);
         } else {
@@ -159,20 +187,22 @@ export abstract class BaseTransformer {
       }
 
       // Only allow http and https protocols
-      if (!['http:', 'https:'].includes(parsed.protocol)) {
+      if (!["http:", "https:"].includes(parsed.protocol)) {
         console.warn(`Invalid URL protocol: ${parsed.protocol}`);
         return undefined;
       }
 
       // Validate hostname structure for basic domain format
-      if (!parsed.hostname ||
-          parsed.hostname.length === 0 ||
-          !parsed.hostname.includes('.') ||
-          parsed.hostname.includes(' ') ||
-          parsed.hostname.includes('<') ||
-          parsed.hostname.includes('>') ||
-          parsed.hostname.includes('(') ||
-          parsed.hostname.includes(')')) {
+      if (
+        !parsed.hostname ||
+        parsed.hostname.length === 0 ||
+        !parsed.hostname.includes(".") ||
+        parsed.hostname.includes(" ") ||
+        parsed.hostname.includes("<") ||
+        parsed.hostname.includes(">") ||
+        parsed.hostname.includes("(") ||
+        parsed.hostname.includes(")")
+      ) {
         console.warn(`Invalid hostname format: ${parsed.hostname}`);
         return undefined;
       }

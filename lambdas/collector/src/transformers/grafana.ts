@@ -8,7 +8,9 @@ export class GrafanaTransformer extends BaseTransformer {
 
     // Validate basic structure
     if (!rawPayload || typeof rawPayload !== "object") {
-      throw new Error(`Invalid Grafana payload: not an object. This indicates corrupted data from Grafana. ${debugContext}`);
+      throw new Error(
+        `Invalid Grafana payload: not an object. This indicates corrupted data from Grafana. ${debugContext}`,
+      );
     }
 
     // Extract first alert from alerts array, or use top-level fields
@@ -21,28 +23,33 @@ export class GrafanaTransformer extends BaseTransformer {
     const state = this.extractState(rawPayload, alert);
 
     // Priority and team are required and expected in annotations based on reference data
-    const priorityValue = annotations.Priority ||
+    const priorityValue =
+      annotations.Priority ||
       annotations.priority ||
       labels.priority ||
       rawPayload.priority;
 
-    const teamValue = annotations.Team ||
+    const teamValue =
+      annotations.Team ||
       annotations.TEAM ||
       annotations.team ||
       labels.team ||
       rawPayload.team;
 
     if (!priorityValue) {
-      throw new Error(`Missing required field "Priority" in Grafana alert annotations. Please add this to make the alert work. ${debugContext}`);
+      throw new Error(
+        `Missing required field "Priority" in Grafana alert annotations. Please add this to make the alert work. ${debugContext}`,
+      );
     }
     if (!teamValue) {
-      throw new Error(`Missing required field "Team" in Grafana alert annotations. Please add this to make the alert work. ${debugContext}`);
+      throw new Error(
+        `Missing required field "Team" in Grafana alert annotations. Please add this to make the alert work. ${debugContext}`,
+      );
     }
 
     const priority = this.extractPriority(priorityValue);
     const team = this.extractTeam(teamValue);
     const occurredAt = this.extractOccurredAt(alert, rawPayload);
-
 
     // Build identity information
     const identity: AlertIdentity = {
@@ -52,9 +59,15 @@ export class GrafanaTransformer extends BaseTransformer {
 
     // Build links with URL validation
     const links: AlertLinks = {
-      runbook_url: this.validateUrl(annotations.runbook_url || labels.runbook_url || ""),
-      dashboard_url: this.validateUrl(alert.dashboardURL || alert.panelURL || ""),
-      source_url: this.validateUrl(alert.generatorURL || rawPayload.generatorURL || ""),
+      runbook_url: this.validateUrl(
+        annotations.runbook_url || labels.runbook_url || "",
+      ),
+      dashboard_url: this.validateUrl(
+        alert.dashboardURL || alert.panelURL || "",
+      ),
+      source_url: this.validateUrl(
+        alert.generatorURL || rawPayload.generatorURL || "",
+      ),
       silence_url: this.validateUrl(alert.silenceURL || ""),
     };
 
@@ -78,12 +91,12 @@ export class GrafanaTransformer extends BaseTransformer {
   private extractTitle(rawPayload: any, alert: any, labels: any): string {
     // Prioritize rulename (actual alert title) over alertname for better descriptive titles
     const candidates = [
-      labels.rulename,          // The actual descriptive alert title
-      alert.labels?.rulename,   // Same from alert object
-      labels.alertname,         // Fallback to generic alert type
+      labels.rulename, // The actual descriptive alert title
+      alert.labels?.rulename, // Same from alert object
+      labels.alertname, // Fallback to generic alert type
       alert.labels?.alertname,
       rawPayload.groupLabels?.alertname,
-      rawPayload.title,         // Last resort: formatted title
+      rawPayload.title, // Last resort: formatted title
     ];
 
     for (const candidate of candidates) {
@@ -94,12 +107,14 @@ export class GrafanaTransformer extends BaseTransformer {
 
     const debugEnvelope = {
       received_at: new Date().toISOString(),
-      event_id: '',
-      ingest_topic: '',
-      ingest_region: '',
-      delivery_attempt: 1
+      event_id: "",
+      ingest_topic: "",
+      ingest_region: "",
+      delivery_attempt: 1,
     };
-    throw new Error(`Missing required field "rulename" or "alertname" in Grafana alert labels. This indicates corrupted data from Grafana. ${this.extractDebugContext(rawPayload, debugEnvelope)}`);
+    throw new Error(
+      `Missing required field "rulename" or "alertname" in Grafana alert labels. This indicates corrupted data from Grafana. ${this.extractDebugContext(rawPayload, debugEnvelope)}`,
+    );
   }
 
   private extractState(rawPayload: any, alert: any): "FIRING" | "RESOLVED" {
@@ -113,12 +128,14 @@ export class GrafanaTransformer extends BaseTransformer {
 
     const debugEnvelope = {
       received_at: new Date().toISOString(),
-      event_id: '',
-      ingest_topic: '',
-      ingest_region: '',
-      delivery_attempt: 1
+      event_id: "",
+      ingest_topic: "",
+      ingest_region: "",
+      delivery_attempt: 1,
     };
-    throw new Error(`Unable to determine alert state. Received status: '${String(status)}'. Expected 'firing' or 'resolved'. This indicates corrupted data from Grafana. ${this.extractDebugContext(rawPayload, debugEnvelope)}`);
+    throw new Error(
+      `Unable to determine alert state. Received status: '${String(status)}'. Expected 'firing' or 'resolved'. This indicates corrupted data from Grafana. ${this.extractDebugContext(rawPayload, debugEnvelope)}`,
+    );
   }
 
   private extractOccurredAt(alert: any, rawPayload: any): string {
@@ -138,7 +155,6 @@ export class GrafanaTransformer extends BaseTransformer {
     return new Date().toISOString();
   }
 
-
   // Extract debugging context for error messages
   private extractDebugContext(rawPayload: any, envelope: Envelope): string {
     const context: string[] = [];
@@ -152,11 +168,12 @@ export class GrafanaTransformer extends BaseTransformer {
     }
 
     // Extract alert title from various locations, prioritizing rulename
-    const alertTitle = rawPayload?.alerts?.[0]?.labels?.rulename ||
-                      rawPayload?.alerts?.[0]?.labels?.alertname ||
-                      rawPayload?.groupLabels?.alertname ||
-                      rawPayload?.commonLabels?.alertname ||
-                      "unknown";
+    const alertTitle =
+      rawPayload?.alerts?.[0]?.labels?.rulename ||
+      rawPayload?.alerts?.[0]?.labels?.alertname ||
+      rawPayload?.groupLabels?.alertname ||
+      rawPayload?.commonLabels?.alertname ||
+      "unknown";
     context.push(`alertTitle="${alertTitle}"`);
 
     // Include orgId if available
@@ -165,19 +182,21 @@ export class GrafanaTransformer extends BaseTransformer {
     }
 
     // Include team if available
-    const team = rawPayload?.alerts?.[0]?.annotations?.Team ||
-                rawPayload?.alerts?.[0]?.annotations?.TEAM ||
-                rawPayload?.alerts?.[0]?.annotations?.team ||
-                rawPayload?.alerts?.[0]?.labels?.team ||
-                rawPayload?.commonAnnotations?.Team ||
-                rawPayload?.commonAnnotations?.TEAM ||
-                rawPayload?.commonLabels?.team;
+    const team =
+      rawPayload?.alerts?.[0]?.annotations?.Team ||
+      rawPayload?.alerts?.[0]?.annotations?.TEAM ||
+      rawPayload?.alerts?.[0]?.annotations?.team ||
+      rawPayload?.alerts?.[0]?.labels?.team ||
+      rawPayload?.commonAnnotations?.Team ||
+      rawPayload?.commonAnnotations?.TEAM ||
+      rawPayload?.commonLabels?.team;
     if (team) {
       context.push(`team="${team}"`);
     }
 
     // Include generator URL for direct debugging link
-    const generatorURL = rawPayload?.alerts?.[0]?.generatorURL || rawPayload?.generatorURL;
+    const generatorURL =
+      rawPayload?.alerts?.[0]?.generatorURL || rawPayload?.generatorURL;
     if (generatorURL) {
       context.push(`generatorURL="${generatorURL}"`);
     }
