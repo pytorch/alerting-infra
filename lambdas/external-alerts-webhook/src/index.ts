@@ -1,6 +1,9 @@
 import type { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
-import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
 import { createHash, timingSafeEqual } from "crypto";
 
 interface WebhookSecrets {
@@ -34,7 +37,7 @@ async function getWebhookSecrets(): Promise<WebhookSecrets> {
 
   try {
     const response = await secretsManager.send(
-      new GetSecretValueCommand({ SecretId: WEBHOOK_SECRET_ID })
+      new GetSecretValueCommand({ SecretId: WEBHOOK_SECRET_ID }),
     );
 
     if (!response.SecretString) {
@@ -67,7 +70,10 @@ async function getWebhookSecrets(): Promise<WebhookSecrets> {
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   try {
     const headers = Object.fromEntries(
-      Object.entries(event.headers || {}).map(([k, v]) => [k.toLowerCase(), v ?? ""]),
+      Object.entries(event.headers || {}).map(([k, v]) => [
+        k.toLowerCase(),
+        v ?? "",
+      ]),
     );
 
     const webhookSecrets = await getWebhookSecrets();
@@ -77,7 +83,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       return { statusCode: 401, body: "unauthorized" };
     }
 
-    const body = typeof event.body === "string" ? event.body : JSON.stringify(event.body ?? {});
+    const body =
+      typeof event.body === "string"
+        ? event.body
+        : JSON.stringify(event.body ?? {});
 
     await sns.send(
       new PublishCommand({
@@ -101,7 +110,10 @@ function digest(input: string): Buffer {
 }
 
 // Check if request has valid authentication using any configured header/token pair
-function isValidRequest(headers: Record<string, string>, webhookSecrets: WebhookSecrets): boolean {
+function isValidRequest(
+  headers: Record<string, string>,
+  webhookSecrets: WebhookSecrets,
+): boolean {
   for (const [headerName, expectedToken] of Object.entries(webhookSecrets)) {
     const providedToken = headers[headerName.toLowerCase()];
     if (providedToken && isValidToken(providedToken, expectedToken)) {
@@ -123,4 +135,3 @@ function isValidToken(providedToken: string, expectedToken: string): boolean {
 }
 
 export default handler;
-

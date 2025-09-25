@@ -144,12 +144,12 @@ func main() {
 
 ### Optional Fields
 
-| Field          | Type   | Description                                        |
-| -------------- | ------ | -------------------------------------------------- |
-| `description`  | string | Detailed description (max 4000 chars)              |
-| `summary`      | string | High-level summary (max 1000 chars)                |
-| `reason`       | string | Provider-specific reason (max 2000 chars)          |
-| `raw_provider` | any    | Original payload for debugging                     |
+| Field          | Type   | Description                               |
+| -------------- | ------ | ----------------------------------------- |
+| `description`  | string | Detailed description (max 4000 chars)     |
+| `summary`      | string | High-level summary (max 1000 chars)       |
+| `reason`       | string | Provider-specific reason (max 2000 chars) |
+| `raw_provider` | any    | Original payload for debugging            |
 
 ### Validation Rules
 

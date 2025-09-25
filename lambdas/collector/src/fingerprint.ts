@@ -22,7 +22,6 @@ export function generateFingerprint(alertEvent: AlertEvent): string {
   return sortAndHashObject(fingerprintInputs);
 }
 
-
 // Helper function to create deterministic hash from object
 function sortAndHashObject(obj: Record<string, any>): string {
   // Sort keys to ensure deterministic ordering

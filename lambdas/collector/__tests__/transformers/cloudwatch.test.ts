@@ -342,9 +342,9 @@ describe("CloudWatchTransformer", () => {
         transformer.transform(invalidAlarm, mockEnvelope);
         expect.fail("Should have thrown an error");
       } catch (error) {
-        expect(error.message).toContain("source=cloudwatch");
-        expect(error.message).toContain("messageId=test-event-123");
-        expect(error.message).toContain("AWSAccountId=123456789012");
+        expect((error as Error).message).toContain("source=cloudwatch");
+        expect((error as Error).message).toContain("messageId=test-event-123");
+        expect((error as Error).message).toContain("AWSAccountId=123456789012");
       }
     });
   });
