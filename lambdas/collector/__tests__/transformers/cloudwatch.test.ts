@@ -22,7 +22,6 @@ describe('CloudWatchTransformer', () => {
 
       expect(result).toMatchObject({
         schema_version: 1,
-        provider_version: 'cloudwatch:2025-06',
         source: 'cloudwatch',
         state: 'FIRING',
         title: 'High CPU Usage',

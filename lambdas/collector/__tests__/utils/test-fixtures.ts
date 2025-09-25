@@ -28,7 +28,6 @@ export function createMockSQSRecord(
 export const testAlertEvents = {
   grafanaFiring: {
     schema_version: 1,
-    provider_version: 'grafana:1.0',
     source: 'grafana',
     state: 'FIRING' as const,
     title: 'Test Alert',
@@ -56,7 +55,6 @@ export const testAlertEvents = {
 
   grafanaResolved: {
     schema_version: 1,
-    provider_version: 'grafana:1.0',
     source: 'grafana',
     state: 'RESOLVED' as const,
     title: 'Test Alert',
@@ -84,7 +82,6 @@ export const testAlertEvents = {
 
   cloudwatchAlarm: {
     schema_version: 1,
-    provider_version: 'cloudwatch:1.0',
     source: 'cloudwatch',
     state: 'FIRING' as const,
     title: 'High CPU Usage',

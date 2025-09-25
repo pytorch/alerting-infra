@@ -69,7 +69,6 @@ export class GrafanaTransformer extends BaseTransformer {
 
     return {
       schema_version: 1,
-      provider_version: "grafana:1.0", // TODO: Add real versioning
       source: "grafana",
       state,
       title,

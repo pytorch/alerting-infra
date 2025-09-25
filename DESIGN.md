@@ -24,7 +24,7 @@ Design choices emphasized by feedback:
 
 Goals
 • Ingest from Grafana and CloudWatch via SNS → SQS.
-• Normalize payloads to a canonical schema with schema_version and provider_version.
+• Normalize payloads to a canonical schema with schema_version.
 • Route to exactly one team and a standardized P0–P3 priority drawn from provider-supplied values.
 • Manage lifecycle: create, comment, close; accept manual closes.
 • Ensure idempotency and out-of-order safety.
@@ -129,7 +129,6 @@ Envelope (ingest metadata; stored with the event for audit and replay triage).  
 
 AlertEvent (persisted key fields also mirrored in DynamoDB state)
 • schema_version: integer (start at 1)
-• provider_version: free-form string (e.g., grafana:9.5, cloudwatch:2025-06)
 • source: grafana | cloudwatch
 • state: FIRING | RESOLVED
 • title: normalized title (rule or alarm name)
@@ -242,7 +241,6 @@ Attributes
 • manually_closed: boolean
 • manually_closed_at: ISO8601 (nullable)
 • schema_version: number (mirrors event)
-• provider_version: string
 • identity: compact map (aws_account, region, alarm_arn, org_id, rule_id)
 • envelope_digest: short hash of envelope for audit
 • ttl_expires_at: epoch seconds (3-year TTL)

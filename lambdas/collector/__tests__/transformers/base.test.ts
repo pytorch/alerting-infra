@@ -8,7 +8,6 @@ class TestTransformer extends BaseTransformer {
     // Minimal implementation for testing base methods
     return {
       schema_version: 1,
-      provider_version: 'test:1.0',
       source: 'test',
       state: 'FIRING',
       title: this.normalizeTitle(rawPayload.title),

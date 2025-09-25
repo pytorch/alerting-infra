@@ -76,7 +76,6 @@ export class CloudWatchTransformer extends BaseTransformer {
 
     return {
       schema_version: 1,
-      provider_version: "cloudwatch:2025-06",
       source: "cloudwatch",
       state,
       title,

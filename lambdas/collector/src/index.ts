@@ -202,8 +202,7 @@ export const handler: SQSHandler = async (event) => {
           resource: alertEvent.resource,
           identity: alertEvent.identity,
           links: alertEvent.links,
-          schema_version: alertEvent.schema_version,
-          provider_version: alertEvent.provider_version
+          schema_version: alertEvent.schema_version
         }, null, 2));
       }
 

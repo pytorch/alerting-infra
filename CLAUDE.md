@@ -118,7 +118,6 @@ The webhook endpoint supports flexible authentication using header/token pairs s
 ```typescript
 interface AlertEvent {
   schema_version: number;        // Version for future migrations
-  provider_version: string;      // Provider-specific version
   source: "grafana" | "cloudwatch";
   state: "FIRING" | "RESOLVED";
   title: string;                // Normalized alert title

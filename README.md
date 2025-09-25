@@ -2,12 +2,6 @@
 
 A production-ready alert normalization pipeline that processes CloudWatch and Grafana alerts, normalizes them into a canonical format, and automatically manages GitHub issues for incident response.
 
-## 🏗️ Architecture Overview
-
-```
-Grafana/CloudWatch → SNS → SQS → Lambda → DynamoDB + GitHub Issues
-```
-
 **Key Features:**
 - 🔄 **Alert Normalization**: Converts CloudWatch and Grafana alerts to canonical schema
 - 🎯 **Intelligent Routing**: Team-based alert assignment with priority handling
@@ -15,6 +9,144 @@ Grafana/CloudWatch → SNS → SQS → Lambda → DynamoDB + GitHub Issues
 - 📋 **Issue Lifecycle**: Automated GitHub issue creation, updates, and closure
 - 🛡️ **Resilience**: Circuit breakers, rate limiting, and graceful degradation
 - ⚡ **Serverless**: Fully serverless AWS architecture with auto-scaling
+
+
+## 📑 Table of Contents
+
+- [🏗️ Architecture Overview](#️-architecture-overview)
+- [🚀 Quick Start](#-quick-start)
+- [📁 Project Structure](#-project-structure)
+- [🛠️ Development Commands](#️-development-commands)
+- [⚙️ Configuration](#️-configuration)
+  - [Environment Setup](#environment-setup)
+  - [GitHub App Setup](#github-app-setup)
+  - [Webhook Configuration](#webhook-configuration)
+  - [Adding New Webhook Emitters](#adding-new-webhook-emitters)
+  - [Alert Source Configuration](#alert-source-configuration)
+- [🏛️ Infrastructure Details](#️-infrastructure-details)
+- [📊 Monitoring & Observability](#-monitoring--observability)
+- [🔧 Troubleshooting](#-troubleshooting)
+- [🔐 Security Features](#-security-features)
+- [🧪 Testing](#-testing)
+- [🤝 Contributing](#-contributing)
+- [📜 License](#-license)
+
+
+## 🏗️ Architecture Overview
+
+```mermaid
+graph TD
+    %% Alert Sources
+    GF[🔥 Grafana Alerts]
+    CW[☁️ CloudWatch Alarms]
+    CUSTOM[🔧 Custom Sources<br/>Normalized Format]
+
+    %% Entry Points
+    WEBHOOK[🌐 Webhook Lambda<br/>external-alerts-webhook]
+    SNS[📢 SNS Topic<br/>alerts]
+
+    %% Processing Pipeline
+    SQS[📬 SQS Queue<br/>alerts]
+    DLQ[💀 Dead Letter Queue<br/>dlq]
+    COLLECTOR[⚙️ Collector Lambda<br/>Main Processing Engine]
+
+    %% Transformation Layer
+    DETECT{🔍 Source Detection}
+    GRAFANA_T[🔄 Grafana Transformer]
+    CW_T[🔄 CloudWatch Transformer]
+    NORM_T[⚡ Normalized Transformer<br/>Skip Transform]
+
+    %% Core Processing
+    FINGERPRINT[🔑 Generate Fingerprint<br/>SHA-256 of stable fields]
+    STATE_CHECK{📊 Check Alert State<br/>DynamoDB}
+    ACTION{🎯 Determine Action}
+
+    %% Actions
+    CREATE[📝 CREATE<br/>New GitHub Issue]
+    COMMENT[💬 COMMENT<br/>Add to existing issue]
+    CLOSE[✅ CLOSE<br/>Close GitHub issue]
+    SKIP[⏭️ SKIP<br/>Stale/Manual close]
+
+    %% Storage & External
+    DYNAMO[(🗄️ DynamoDB<br/>Alert State Tracking)]
+    GITHUB[🐙 GitHub Issues<br/>Incident Management]
+
+    %% Flow connections
+    GF -->|POST /webhook<br/>X-Grafana-Token| WEBHOOK
+    CUSTOM -->|POST /webhook<br/>Custom Headers| WEBHOOK
+    CW -->|CloudWatch Action| SNS
+
+    WEBHOOK -->|Authenticated<br/>Requests| SNS
+    SNS -->|Forward to persistent store| SQS
+    SQS -->|Batch Processing<br/>Partial Failure Support| COLLECTOR
+    SQS -.->|Failed Messages| DLQ
+
+    COLLECTOR --> DETECT
+    DETECT -->|grafana| GRAFANA_T
+    DETECT -->|cloudwatch| CW_T
+    DETECT -->|normalized| NORM_T
+
+    GRAFANA_T --> FINGERPRINT
+    CW_T --> FINGERPRINT
+    NORM_T --> FINGERPRINT
+
+    FINGERPRINT --> STATE_CHECK
+    STATE_CHECK <--> DYNAMO
+    STATE_CHECK --> ACTION
+
+    ACTION --> CREATE
+    ACTION --> COMMENT
+    ACTION --> CLOSE
+    ACTION --> SKIP
+
+    CREATE --> GITHUB
+    COMMENT --> GITHUB
+    CLOSE --> GITHUB
+
+    CREATE --> DYNAMO
+    COMMENT --> DYNAMO
+    CLOSE --> DYNAMO
+
+    %% Styling
+    classDef alertSource fill:#ff9999
+    classDef processing fill:#99ccff
+    classDef storage fill:#99ff99
+    classDef action fill:#ffcc99
+    classDef transformer fill:#cc99ff
+
+    class GF,CW,CUSTOM alertSource
+    class WEBHOOK,SNS,SQS,COLLECTOR processing
+    class DYNAMO,GITHUB storage
+    class CREATE,COMMENT,CLOSE,SKIP action
+    class GRAFANA_T,CW_T,NORM_T transformer
+```
+
+### 🔄 Call Flow Details
+
+1. **Alert Ingestion**
+   - **Grafana**: Sends webhooks → Webhook Lambda → SNS
+   - **CloudWatch**: Sends directly → SNS
+   - **Custom Sources**: Can use webhook (any format) or send pre-normalized alerts
+
+2. **Message Processing**
+   - SNS fans out to SQS queue with dead letter queue for failures
+   - Collector Lambda processes messages in batches with partial failure support
+   - Source detection automatically routes to appropriate transformer
+
+3. **Alert Transformation**
+   - **Grafana/CloudWatch**: Full transformation to canonical AlertEvent schema
+   - **Normalized**: Skip transformation, direct validation for optimal performance
+   - Generate SHA-256 fingerprint from stable alert identifiers
+
+4. **State Management & Actions**
+   - Check DynamoDB for existing alert state by fingerprint
+   - Determine action: CREATE (new), COMMENT (recurring), CLOSE (resolved), or SKIP
+   - Update both GitHub issues and DynamoDB state atomically
+
+5. **Resilience Features**
+   - Circuit breakers prevent GitHub API cascading failures
+   - Rate limiting respects GitHub API limits with exponential backoff
+   - Dead letter queue captures poison messages for manual review
 
 ## 🚀 Quick Start
 
@@ -26,6 +158,7 @@ Grafana/CloudWatch → SNS → SQS → Lambda → DynamoDB + GitHub Issues
 
 ### 1. Build Lambda Functions
 ```bash
+# Will build all lambada functions. You can also go to their individual folders and run `yarn build` from there
 make build
 ```
 
@@ -41,6 +174,7 @@ make aws-apply-dev
 
 ```bash
 make aws-apply-prod
+```
 
 ### 4. Test the Pipeline
 ```bash
@@ -78,6 +212,7 @@ cd infra && terraform output -raw sns_topic_arn
 ├── lambdas/                 # TypeScript Lambda functions
 │   ├── collector/           # Main alert processing engine
 │   │   ├── src/            # TypeScript source code
+│   │   ├── schemas/        # JSON Schema definitions for validation
 │   │   ├── __tests__/      # Unit tests with Vitest
 │   │   └── dist/           # Compiled JavaScript (build output)
 │   └── external-alerts-webhook/  # Grafana webhook endpoint
@@ -235,14 +370,117 @@ cd infra && terraform output -raw external_alerts_webhook_url
 
 Configure your service to send POST requests to this URL with the appropriate authentication header.
 
-#### 3. Add Alert Transformation (if needed)
-If the new service uses a different payload format than existing supported sources (Grafana/CloudWatch), you may need to:
+#### 3. Send Alerts in Normalized Format (Recommended)
+For optimal performance and reliability, custom webhook emitters should send alerts in the normalized format. When alerts are pre-normalized, the collector can skip transformation and directly process them.
+
+**Normalized AlertEvent Schema:**
+```typescript
+interface AlertEvent {
+  schema_version: number;        // Version for schema evolution (currently 1)
+  source: "grafana" | "cloudwatch" | string; // Alert source identifier
+  state: "FIRING" | "RESOLVED";  // Alert state
+  title: string;                // Alert title/name
+  description?: string;         // Optional alert description
+  summary?: string;             // High-level summary for display
+  reason?: string;              // Provider-specific reason/message
+  priority: "P0" | "P1" | "P2" | "P3"; // Canonical priority
+  occurred_at: string;          // ISO8601 timestamp of state change
+  team: string;                 // Owning team identifier
+  resource: {                   // Resource information
+    type: "runner" | "instance" | "job" | "service" | "generic";
+    id?: string;                // Resource identifier
+    region?: string;            // AWS region (if applicable)
+    extra?: Record<string, any>; // Additional context
+  };
+  identity: {                   // Identity for fingerprinting
+    aws_account?: string;       // AWS account ID
+    region?: string;            // Region
+    alarm_arn?: string;         // CloudWatch alarm ARN
+    org_id?: string;            // Organization ID
+    rule_id?: string;           // Rule/alert ID
+  };
+  links: {                      // Navigation links
+    runbook_url?: string;       // Runbook/playbook URL
+    dashboard_url?: string;     // Dashboard URL
+    source_url?: string;        // Source console/panel URL
+    silence_url?: string;       // Silence/mute URL
+  };
+  raw_provider?: any;           // Original payload for debugging
+}
+```
+
+**Example Pre-Normalized Alert:**
+```json
+{
+  "schema_version": 1,
+  "source": "datadog",
+  "state": "FIRING",
+  "title": "High CPU Usage on prod-web-01",
+  "description": "CPU utilization has exceeded 90% for 5 minutes",
+  "summary": "Critical CPU alert on production web server",
+  "priority": "P1",
+  "occurred_at": "2024-01-15T10:30:00Z",
+  "team": "platform-team",
+  "resource": {
+    "type": "instance",
+    "id": "i-1234567890abcdef0",
+    "region": "us-west-2",
+    "extra": {
+      "instance_type": "m5.large",
+      "availability_zone": "us-west-2a"
+    }
+  },
+  "identity": {
+    "aws_account": "123456789012",
+    "region": "us-west-2",
+    "rule_id": "cpu-high-prod-web"
+  },
+  "links": {
+    "runbook_url": "https://wiki.company.com/runbooks/high-cpu",
+    "dashboard_url": "https://datadog.com/dashboard/cpu-monitoring",
+    "source_url": "https://datadog.com/monitors/12345"
+  },
+  "raw_provider": {
+    "monitor_id": 12345,
+    "original_payload": "..."
+  }
+}
+```
+
+**To use pre-normalized format:**
+1. Set SQS message attribute: `source = "normalized"`
+2. Send the AlertEvent JSON directly as the message body
+3. The collector will validate against the JSON Schema and process directly
+
+**Schema Location & Validation:**
+- **JSON Schema**: [`/lambdas/collector/schemas/alert-event.schema.json`](./lambdas/collector/schemas/alert-event.schema.json)
+- **Schema ID**: `https://schemas.pytorch.org/alerting/alert-event.schema.json`
+- **Current Version**: 1.0 (schema_version: 1)
+- **Validation**: Messages are validated using [AJV](https://ajv.js.org/) with comprehensive error reporting
+
+**External Integration:**
+```bash
+# Validate your alerts against the schema
+curl -O https://raw.githubusercontent.com/pytorch/test-infra-alerting/main/lambdas/collector/schemas/alert-event.schema.json
+
+# Use with any JSON Schema validator (Python example)
+pip install jsonschema
+python -c "
+import json, jsonschema
+schema = json.load(open('alert-event.schema.json'))
+alert = {'schema_version': 1, 'source': 'myapp', ...}
+jsonschema.validate(alert, schema)
+"
+```
+
+#### 4. Add Alert Transformation (for custom formats)
+If your service cannot send pre-normalized alerts and uses a different payload format, you may need to:
 
 1. **Add a new transformer** in `lambdas/collector/src/transformers/`
 2. **Update source detection** in the collector Lambda to recognize the new format
 3. **Test the transformation** with sample payloads
 
-#### 4. Test the Integration
+#### 5. Test the Integration
 ```bash
 # Monitor logs
 make logs-dev

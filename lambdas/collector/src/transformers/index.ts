@@ -2,11 +2,13 @@ import { SQSRecord } from "aws-lambda";
 import { BaseTransformer } from "./base";
 import { GrafanaTransformer } from "./grafana";
 import { CloudWatchTransformer } from "./cloudwatch";
+import { NormalizedTransformer } from "./normalized";
 
 // Export all transformer classes
 export { BaseTransformer } from "./base";
 export { GrafanaTransformer } from "./grafana";
 export { CloudWatchTransformer } from "./cloudwatch";
+export { NormalizedTransformer } from "./normalized";
 
 // Factory function to get appropriate transformer based on source
 export function getTransformer(source: string): BaseTransformer {
@@ -15,6 +17,8 @@ export function getTransformer(source: string): BaseTransformer {
       return new GrafanaTransformer();
     case "cloudwatch":
       return new CloudWatchTransformer();
+    case "normalized":
+      return new NormalizedTransformer();
     default:
       throw new Error(`Unknown alert source: ${source}`);
   }
@@ -26,6 +30,16 @@ export function detectAlertSource(sqsRecord: SQSRecord): string {
   const messageAttributes = sqsRecord.messageAttributes;
   if (messageAttributes?.source?.stringValue) {
     return messageAttributes.source.stringValue;
+  }
+
+  // Check if the message body is already in normalized format
+  try {
+    const body = JSON.parse(sqsRecord.body);
+    if (body.schema_version && body.source && body.state && body.title && body.priority && body.team) {
+      return "normalized";
+    }
+  } catch {
+    // Continue with other detection methods if parsing fails
   }
 
   // Fallback: sniff the payload structure

@@ -22,3 +22,6 @@ sample_data/
 scratch/
 
 .claude/
+
+# Watchman temporary files
+.watchman-cookie-*

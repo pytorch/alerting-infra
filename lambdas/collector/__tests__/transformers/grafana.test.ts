@@ -22,7 +22,6 @@ describe('GrafanaTransformer', () => {
 
       expect(result).toMatchObject({
         schema_version: 1,
-        provider_version: 'grafana:1.0',
         source: 'grafana',
         state: 'FIRING',
         title: 'Test Alert',

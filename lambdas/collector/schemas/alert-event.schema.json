@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.pytorch.org/alerting/alert-event.schema.json",
+  "title": "AlertEvent",
+  "description": "Canonical alert event schema for the PyTorch Test Infrastructure Alerting System",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version for future migrations (currently 1)"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "description": "Alert source identifier",
+      "examples": ["grafana", "cloudwatch", "datadog", "pagerduty", "custom"]
+    },
+    "state": {
+      "type": "string",
+      "enum": ["FIRING", "RESOLVED"],
+      "description": "Current alert state"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Alert title or name"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 4000,
+      "description": "Optional detailed alert description"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Optional high-level summary for prominent display"
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Optional provider-specific reason or message"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["P0", "P1", "P2", "P3"],
+      "description": "Canonical priority level"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 timestamp of when the alert state changed"
+    },
+    "team": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "description": "Owning team identifier (normalized with hyphens)"
+    },
+    "resource": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["runner", "instance", "job", "service", "generic"],
+          "description": "Type of resource affected by the alert"
+        },
+        "id": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Optional resource identifier"
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 50,
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "Optional AWS region or equivalent"
+        },
+        "extra": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Additional resource context (small map)"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false,
+      "description": "Information about the resource affected by the alert"
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "aws_account": {
+          "type": "string",
+          "pattern": "^[0-9]{12}$",
+          "description": "AWS account ID (12 digits)"
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 50,
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "AWS region or equivalent"
+        },
+        "alarm_arn": {
+          "type": "string",
+          "maxLength": 1024,
+          "pattern": "^arn:aws:cloudwatch:",
+          "description": "CloudWatch alarm ARN (if applicable)"
+        },
+        "org_id": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Organization ID (for Grafana or other multi-tenant systems)"
+        },
+        "rule_id": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Alert rule or monitor ID"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Identity information for cross-account/region collision prevention"
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "runbook_url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "URL to runbook or playbook for this alert"
+        },
+        "dashboard_url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "URL to monitoring dashboard"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "URL to alert source (console, panel, etc.)"
+        },
+        "silence_url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "URL to silence or mute this alert"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Navigation and action links related to the alert"
+    },
+    "raw_provider": {
+      "description": "Original, pre-normalization provider payload preserved for debugging purposes"
+    }
+  },
+  "required": [
+    "schema_version",
+    "source",
+    "state",
+    "title",
+    "priority",
+    "occurred_at",
+    "team",
+    "identity",
+    "links"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schema_version": 1,
+      "source": "datadog",
+      "state": "FIRING",
+      "title": "High CPU Usage on prod-web-01",
+      "description": "CPU utilization has exceeded 90% for 5 minutes",
+      "summary": "Critical CPU alert on production web server",
+      "priority": "P1",
+      "occurred_at": "2024-01-15T10:30:00.000Z",
+      "team": "platform-team",
+      "resource": {
+        "type": "instance",
+        "id": "i-1234567890abcdef0",
+        "region": "us-west-2",
+        "extra": {
+          "instance_type": "m5.large",
+          "availability_zone": "us-west-2a"
+        }
+      },
+      "identity": {
+        "aws_account": "123456789012",
+        "region": "us-west-2",
+        "rule_id": "cpu-high-prod-web"
+      },
+      "links": {
+        "runbook_url": "https://wiki.company.com/runbooks/high-cpu",
+        "dashboard_url": "https://datadog.com/dashboard/cpu-monitoring",
+        "source_url": "https://datadog.com/monitors/12345"
+      },
+      "raw_provider": {
+        "monitor_id": 12345,
+        "original_payload": "..."
+      }
+    }
+  ]
+}

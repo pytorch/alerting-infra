@@ -37,8 +37,7 @@ export interface AlertLinks {
 // Canonical AlertEvent schema (persisted key fields also mirrored in DynamoDB state)
 export interface AlertEvent {
   schema_version: number; // integer (start at 1)
-  provider_version: string; // free-form string (e.g., grafana:9.5, cloudwatch:2025-06)
-  source: "grafana" | "cloudwatch";
+  source: string;
   state: "FIRING" | "RESOLVED";
   title: string; // normalized title (rule or alarm name)
   description?: string; // optional text from alert description
@@ -47,10 +46,10 @@ export interface AlertEvent {
   priority: "P0" | "P1" | "P2" | "P3"; // single canonical concept; no severity field
   occurred_at: string; // provider state change time (ISO8601)
   team: string; // owning team slug (single team in v1)
-  resource: AlertResource;
+  resource?: AlertResource; // optional - many alerts don't have meaningful resource info
   identity: AlertIdentity;
   links: AlertLinks;
-  raw_provider: any; // minimally transformed provider payload for debugging
+  raw_provider?: any; // minimally transformed provider payload for debugging
   // TODO: Add `fingerprint` field here as well. It's esp useful for when the provider sends it.
 }
 
@@ -70,7 +69,6 @@ export interface AlertState {
   manually_closed: boolean;
   manually_closed_at?: string; // ISO8601 (nullable)
   schema_version: number; // mirrors event
-  provider_version: string;
   identity: AlertIdentity; // compact map
   envelope_digest: string; // short hash of envelope for audit
   ttl_expires_at: number; // epoch seconds (3-year TTL)

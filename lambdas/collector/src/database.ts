@@ -67,7 +67,6 @@ export class AlertStateManager {
       last_seen_at: now,
       manually_closed: false,
       schema_version: alertEvent.schema_version,
-      provider_version: alertEvent.provider_version,
       identity: alertEvent.identity,
       envelope_digest: this.createEnvelopeDigest(alertEvent),
       ttl_expires_at: ttlExpiresAt,
@@ -179,7 +178,6 @@ export class AlertStateManager {
 
         const updates: Partial<AlertState> = {
           last_provider_state_at: alertEvent.occurred_at,
-          provider_version: alertEvent.provider_version,
         };
 
         // Update status based on alert state
@@ -272,7 +270,6 @@ export class AlertStateManager {
   private createEnvelopeDigest(alertEvent: AlertEvent): string {
     const envelopeString = JSON.stringify({
       source: alertEvent.source,
-      provider_version: alertEvent.provider_version,
       occurred_at: alertEvent.occurred_at,
     });
 

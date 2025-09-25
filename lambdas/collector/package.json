@@ -14,20 +14,22 @@
     "format:check": "prettier -c ."
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.137",
-    "@types/jsonwebtoken": "^9.0.6",
     "@aws-sdk/client-dynamodb": "^3.620.0",
     "@aws-sdk/client-secrets-manager": "^3.620.0",
     "@aws-sdk/lib-dynamodb": "^3.620.0",
+    "@types/aws-lambda": "^8.10.137",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@vitest/coverage-v8": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
     "aws-sdk-client-mock": "^4.0.0",
     "esbuild": "^0.21.5",
     "prettier": "^3.3.3",
     "typescript": "^5.4.5",
-    "vitest": "^1.6.0",
-    "@vitest/coverage-v8": "^1.6.0",
-    "@vitest/ui": "^1.6.0"
+    "vitest": "^1.6.0"
   },
   "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "jsonwebtoken": "^9.0.2"
   }
 }
