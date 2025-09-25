@@ -78,17 +78,20 @@ export class CircuitBreaker {
     this.failureCount++;
     this.lastFailureTime = Date.now();
 
+    if (this.state === CircuitState.CLOSED && (this.failureCount < this.config.failureThreshold)) {
+      // Ignore this failure, not enough to open the circuit yet
+      return;
+    }
+
     if (this.state === CircuitState.HALF_OPEN) {
-      // Failed during recovery test, go back to open
-      this.state = CircuitState.OPEN;
-      this.nextAttemptTime = Date.now() + this.config.recoveryTimeout;
       console.log('Circuit breaker recovery test failed - back to OPEN');
     } else if (this.failureCount >= this.config.failureThreshold) {
-      // Too many failures, open the circuit
-      this.state = CircuitState.OPEN;
-      this.nextAttemptTime = Date.now() + this.config.recoveryTimeout;
       console.log(`Circuit breaker OPENED after ${this.failureCount} failures`);
     }
+
+    // Failed during recovery test, go back to open
+    this.state = CircuitState.OPEN;
+    this.nextAttemptTime = Date.now() + this.config.recoveryTimeout;
   }
 
   /**

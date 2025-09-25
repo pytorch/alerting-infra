@@ -32,10 +32,6 @@ describe("Schema Validator", () => {
         .toThrow("AlertEvent validation failed");
     });
 
-    it("should allow missing resource field", () => {
-      // Resource field should be optional since many alerts don't have meaningful resource info
-      expect(() => validateNormalizedAlertEvent(validAlertEvent)).not.toThrow();
-    });
 
     it("should allow valid optional fields", () => {
       const alertWithOptionals: AlertEvent = {
@@ -43,15 +39,6 @@ describe("Schema Validator", () => {
         description: "Test description",
         summary: "Test summary",
         reason: "Test reason",
-        resource: {
-          type: "instance",
-          id: "i-123456",
-          region: "us-west-2",
-          extra: {
-            instance_type: "m5.large",
-            tags: ["prod", "web"]
-          }
-        },
         identity: {
           aws_account: "123456789012",
           region: "us-west-2",

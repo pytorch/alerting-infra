@@ -27,11 +27,6 @@ describe('CloudWatchTransformer', () => {
         title: 'High CPU Usage',
         priority: 'P2',
         team: 'platform',
-        resource: {
-          type: 'instance',
-          id: 'i-1234567890abcdef0',
-          region: 'us-east-1',
-        },
         identity: {
           aws_account: '123456789012',
           region: 'us-east-1',
@@ -110,64 +105,8 @@ describe('CloudWatchTransformer', () => {
       expect(result.description).toBe('Custom description');
     });
 
-    it('should extract resource type from namespace', () => {
-      const testCases = [
-        { namespace: 'AWS/AutoScaling', expected: 'instance' },
-        { namespace: 'AWS/EC2', expected: 'instance' },
-        { namespace: 'AWS/ECS', expected: 'service' },
-        { namespace: 'AWS/Lambda', expected: 'service' },
-      ];
 
-      testCases.forEach(({ namespace, expected }) => {
-        const alarmData = JSON.parse(testCloudWatchPayloads.alarm.Message);
-        const customAlarm = {
-          ...testCloudWatchPayloads.alarm,
-          Message: JSON.stringify({
-            ...alarmData,
-            AlarmDescription: 'TEAM=platform | PRIORITY=P2',
-            Trigger: {
-              ...alarmData.Trigger,
-              Namespace: namespace,
-            },
-          }),
-        };
 
-        const result = transformer.transform(customAlarm, mockEnvelope);
-        expect(result.resource.type).toBe(expected);
-      });
-    });
-
-    it('should extract resource ID from dimensions', () => {
-      const alarmData = JSON.parse(testCloudWatchPayloads.alarm.Message);
-      const customAlarm = {
-        ...testCloudWatchPayloads.alarm,
-        Message: JSON.stringify({
-          ...alarmData,
-          Trigger: {
-            ...alarmData.Trigger,
-            Dimensions: [
-              { name: 'AutoScalingGroupName', value: 'my-asg' },
-              { name: 'InstanceId', value: 'i-1234567890abcdef0' },
-            ],
-          },
-        }),
-      };
-
-      const result = transformer.transform(customAlarm, mockEnvelope);
-      expect(result.resource.id).toBe('my-asg'); // Should prefer AutoScalingGroupName
-    });
-
-    it('should build resource extra information', () => {
-      const result = transformer.transform(testCloudWatchPayloads.alarm, mockEnvelope);
-
-      expect(result.resource.extra).toMatchObject({
-        metric_name: 'CPUUtilization',
-        namespace: 'AWS/EC2',
-        statistic: 'AVERAGE',
-        threshold: 80.0,
-        comparison_operator: 'GreaterThanThreshold',
-      });
-    });
 
     it('should extract region from ARN correctly', () => {
       const alarmData = JSON.parse(testCloudWatchPayloads.alarm.Message);
@@ -181,25 +120,9 @@ describe('CloudWatchTransformer', () => {
 
       const result = transformer.transform(customAlarm, mockEnvelope);
 
-      expect(result.resource.region).toBe('eu-west-1');
       expect(result.identity.region).toBe('eu-west-1');
     });
 
-    it('should normalize region names to codes', () => {
-      const alarmData = JSON.parse(testCloudWatchPayloads.alarm.Message);
-      const customAlarm = {
-        ...testCloudWatchPayloads.alarm,
-        Message: JSON.stringify({
-          ...alarmData,
-          Region: 'US West - Oregon',
-          AlarmArn: undefined, // No ARN, should use region name
-        }),
-      };
-
-      const result = transformer.transform(customAlarm, mockEnvelope);
-
-      expect(result.resource.region).toBe('us-west-2');
-    });
 
     it('should build console URL correctly', () => {
       const result = transformer.transform(testCloudWatchPayloads.alarm, mockEnvelope);

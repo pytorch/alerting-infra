@@ -45,7 +45,6 @@ describe("Source Detection", () => {
         priority: "P1",
         occurred_at: "2024-01-15T10:30:00.000Z",
         team: "platform-team",
-        resource: { type: "instance" },
         identity: {},
         links: {}
       };
@@ -148,7 +147,6 @@ describe("Source Detection", () => {
         priority: "P1",
         occurred_at: "2024-01-15T10:30:00.000Z",
         team: "platform-team",
-        resource: { type: "instance" },
         identity: {},
         links: {}
       };

@@ -28,10 +28,6 @@ describe('GrafanaTransformer', () => {
         description: 'Test alert description',
         priority: 'P1',
         team: 'dev-infra',
-        resource: {
-          type: 'runner',
-          id: 'test-runner',
-        },
         identity: {
           org_id: '1',
           rule_id: 'abc123',
@@ -136,34 +132,6 @@ describe('GrafanaTransformer', () => {
       expect(result.occurred_at).toBe('2025-09-16T10:30:00.000Z');
     });
 
-    it('should build resource information correctly', () => {
-      const payload = {
-        ...testGrafanaPayloads.firing,
-        alerts: [{
-          ...testGrafanaPayloads.firing.alerts[0],
-          labels: {
-            alertname: 'Test Alert',
-            resource_type: 'service',
-            resource_id: 'web-service-1',
-            region: 'us-west-2',
-            environment: 'production',
-            version: '1.2.3',
-          },
-        }],
-      };
-
-      const result = transformer.transform(payload, mockEnvelope);
-
-      expect(result.resource).toMatchObject({
-        type: 'service',
-        id: 'web-service-1',
-        region: 'us-west-2',
-        extra: {
-          environment: 'production',
-          version: '1.2.3',
-        },
-      });
-    });
 
     it('should build identity information', () => {
       const payload = {
@@ -270,31 +238,6 @@ describe('GrafanaTransformer', () => {
     // These would be better as integration tests
   });
 
-  describe('resource type extraction', () => {
-    it('should map known resource types', () => {
-      const testCases = [
-        { resource_type: 'runner', expected: 'runner' },
-        { resource_type: 'instance', expected: 'instance' },
-        { resource_type: 'job', expected: 'job' },
-        { resource_type: 'service', expected: 'service' },
-        { resource_type: 'RUNNER', expected: 'runner' }, // Case insensitive
-        { resource_type: 'unknown-type', expected: 'generic' }, // Fallback
-      ];
-
-      testCases.forEach(({ resource_type, expected }) => {
-        const payload = {
-          ...testGrafanaPayloads.firing,
-          alerts: [{
-            ...testGrafanaPayloads.firing.alerts[0],
-            labels: { alertname: 'Test', resource_type },
-          }],
-        };
-
-        const result = transformer.transform(payload, mockEnvelope);
-        expect(result.resource.type).toBe(expected);
-      });
-    });
-  });
 
   describe('data sanitization', () => {
     it('should sanitize description and reason fields', () => {

@@ -1,5 +1,5 @@
 import { BaseTransformer } from "./base";
-import { AlertEvent, Envelope, AlertResource, AlertIdentity, AlertLinks } from "../types";
+import { AlertEvent, Envelope, AlertIdentity, AlertLinks } from "../types";
 
 export class CloudWatchTransformer extends BaseTransformer {
   transform(rawPayload: any, envelope: Envelope): AlertEvent {
@@ -53,13 +53,6 @@ export class CloudWatchTransformer extends BaseTransformer {
     const priority = this.extractPriority(descriptionParsed.metadata.PRIORITY);
     const team = this.extractTeam(descriptionParsed.metadata.TEAM);
 
-    // Build resource information
-    const resource: AlertResource = {
-      type: this.extractResourceType(alarmData),
-      id: this.extractResourceId(alarmData),
-      region: this.extractRegionFromArn(alarmData.AlarmArn) || this.normalizeRegion(alarmData.Region || ""),
-      extra: this.extractResourceExtra(alarmData),
-    };
 
     // Build identity information
     const identity: AlertIdentity = {
@@ -85,7 +78,6 @@ export class CloudWatchTransformer extends BaseTransformer {
       priority,
       occurred_at: occurredAt,
       team,
-      resource,
       identity,
       links,
       raw_provider: rawPayload,
@@ -167,82 +159,6 @@ export class CloudWatchTransformer extends BaseTransformer {
   }
 
 
-  private extractResourceType(alarmData: any): AlertResource["type"] {
-    const trigger = alarmData.Trigger;
-    if (!trigger) return "generic";
-
-    const namespace = trigger.Namespace;
-    if (typeof namespace === "string") {
-      if (namespace.includes("AutoScaling")) return "instance";
-      if (namespace.includes("EC2")) return "instance";
-      if (namespace.includes("ECS")) return "service";
-      if (namespace.includes("Lambda")) return "service";
-    }
-
-    // Check dimensions for hints
-    const dimensions = trigger.Dimensions;
-    if (Array.isArray(dimensions)) {
-      for (const dim of dimensions) {
-        if (dim.name === "AutoScalingGroupName") return "instance";
-        if (dim.name === "InstanceId") return "instance";
-        if (dim.name === "ServiceName") return "service";
-      }
-    }
-
-    return "generic";
-  }
-
-  private extractResourceId(alarmData: any): string | undefined {
-    const trigger = alarmData.Trigger;
-    if (!trigger?.Dimensions || !Array.isArray(trigger.Dimensions)) {
-      return undefined;
-    }
-
-    // Look for meaningful resource identifiers
-    const dimensionPriority = [
-      "AutoScalingGroupName",
-      "InstanceId",
-      "ServiceName",
-      "FunctionName",
-      "LoadBalancerName",
-    ];
-
-    for (const dimName of dimensionPriority) {
-      const dimension = trigger.Dimensions.find((d: any) => d.name === dimName);
-      if (dimension?.value) {
-        return this.safeString(dimension.value);
-      }
-    }
-
-    // Fallback to first dimension value
-    if (trigger.Dimensions.length > 0 && trigger.Dimensions[0].value) {
-      return this.safeString(trigger.Dimensions[0].value);
-    }
-
-    return undefined;
-  }
-
-  private extractResourceExtra(alarmData: any): Record<string, any> | undefined {
-    const extra: Record<string, any> = {};
-
-    // Add trigger information
-    const trigger = alarmData.Trigger;
-    if (trigger) {
-      if (trigger.MetricName) extra.metric_name = trigger.MetricName;
-      if (trigger.Namespace) extra.namespace = trigger.Namespace;
-      if (trigger.Statistic) extra.statistic = trigger.Statistic;
-    }
-
-    // Add threshold information
-    if (trigger?.Threshold !== undefined) {
-      extra.threshold = trigger.Threshold;
-    }
-    if (trigger?.ComparisonOperator) {
-      extra.comparison_operator = trigger.ComparisonOperator;
-    }
-
-    return Object.keys(extra).length > 0 ? extra : undefined;
-  }
 
   private buildConsoleUrl(alarmData: any): string | undefined {
     const alarmName = alarmData.AlarmName;

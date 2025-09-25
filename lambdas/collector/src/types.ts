@@ -9,13 +9,6 @@ export interface Envelope {
   event_id?: string; // deterministic or provider-derived unique id if present
 }
 
-// Resource information
-export interface AlertResource {
-  type: "runner" | "instance" | "job" | "service" | "generic";
-  id?: string; // optional string identifier
-  region?: string; // optional AWS region
-  extra?: Record<string, any>; // small map for context
-}
 
 // Identity information for cross-account/region collision prevention
 export interface AlertIdentity {
@@ -46,7 +39,6 @@ export interface AlertEvent {
   priority: "P0" | "P1" | "P2" | "P3"; // single canonical concept; no severity field
   occurred_at: string; // provider state change time (ISO8601)
   team: string; // owning team slug (single team in v1)
-  resource?: AlertResource; // optional - many alerts don't have meaningful resource info
   identity: AlertIdentity;
   links: AlertLinks;
   raw_provider?: any; // minimally transformed provider payload for debugging

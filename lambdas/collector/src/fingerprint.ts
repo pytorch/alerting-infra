@@ -19,13 +19,6 @@ function generateCloudWatchFingerprint(alertEvent: AlertEvent): string {
     title: normalizeTitle(alertEvent.title),
   };
 
-  // Add resource identifiers if present
-  if (alertEvent.resource.type) {
-    fingerprintInputs.resource_type = alertEvent.resource.type;
-  }
-  if (alertEvent.resource.id) {
-    fingerprintInputs.resource_id = alertEvent.resource.id;
-  }
 
   // Add CloudWatch-specific identity fields
   if (alertEvent.identity.aws_account) {
@@ -48,13 +41,6 @@ function generateGrafanaFingerprint(alertEvent: AlertEvent): string {
     title: normalizeTitle(alertEvent.title),
   };
 
-  // Add resource identifiers if present
-  if (alertEvent.resource.type) {
-    fingerprintInputs.resource_type = alertEvent.resource.type;
-  }
-  if (alertEvent.resource.id) {
-    fingerprintInputs.resource_id = alertEvent.resource.id;
-  }
 
   // Add Grafana-specific identity fields
   if (alertEvent.identity.org_id) {

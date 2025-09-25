@@ -36,11 +36,6 @@ export const testAlertEvents = {
     priority: 'P1' as const,
     occurred_at: '2025-09-16T12:00:00.000Z',
     team: 'dev-infra',
-    resource: {
-      type: 'runner' as const,
-      id: 'test-runner',
-      region: 'us-east-1',
-    },
     identity: {
       org_id: '1',
       rule_id: 'test-rule-123',
@@ -63,11 +58,6 @@ export const testAlertEvents = {
     priority: 'P1' as const,
     occurred_at: '2025-09-16T12:05:00.000Z',
     team: 'dev-infra',
-    resource: {
-      type: 'runner' as const,
-      id: 'test-runner',
-      region: 'us-east-1',
-    },
     identity: {
       org_id: '1',
       rule_id: 'test-rule-123',
@@ -90,11 +80,6 @@ export const testAlertEvents = {
     priority: 'P2' as const,
     occurred_at: '2025-09-16T12:00:00.000Z',
     team: 'platform',
-    resource: {
-      type: 'instance' as const,
-      id: 'i-1234567890abcdef0',
-      region: 'us-east-1',
-    },
     identity: {
       org_id: '123456789012',
       rule_id: 'arn:aws:cloudwatch:us-east-1:123456789012:alarm:HighCPU',
@@ -117,8 +102,6 @@ export const testGrafanaPayloads = {
         status: 'firing',
         labels: {
           alertname: 'Test Alert',
-          resource_type: 'runner',
-          resource_id: 'test-runner',
         },
         annotations: {
           Priority: 'P1',
@@ -154,8 +137,6 @@ export const testGrafanaPayloads = {
         status: 'resolved',
         labels: {
           alertname: 'Test Alert',
-          resource_type: 'runner',
-          resource_id: 'test-runner',
         },
         annotations: {
           Priority: 'P1',

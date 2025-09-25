@@ -43,14 +43,6 @@ async function createGitHubIssueForAlert(
       alertEvent.links?.silence_url ? `- **Silence Alert**: ${alertEvent.links.silence_url}\n` : "",
       `- **Source**: ${alertEvent.source}\n`,
       `- **Fingerprint**: \`${fingerprint}\`\n`,
-      // TODO: Delete this debugging comment block once this code is stable.
-      // "\n",
-      // "---\n",
-      // "#### Raw Provider Payload\n",
-      // "Temporary section for debugging\n",
-      // "```json\n",
-      // JSON.stringify(alertEvent.raw_provider, null, 2) + "\n",
-      // "```\n"
     ].filter(Boolean).join("");
 
     // Create labels based on priority, team, source, and default area label
@@ -199,7 +191,6 @@ export const handler: SQSHandler = async (event) => {
           priority: alertEvent.priority,
           team: alertEvent.team,
           occurred_at: alertEvent.occurred_at,
-          resource: alertEvent.resource,
           identity: alertEvent.identity,
           links: alertEvent.links,
           schema_version: alertEvent.schema_version

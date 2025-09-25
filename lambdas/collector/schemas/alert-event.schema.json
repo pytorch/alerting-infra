@@ -61,35 +61,6 @@
       "pattern": "^[a-zA-Z0-9_-]+$",
       "description": "Owning team identifier (normalized with hyphens)"
     },
-    "resource": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["runner", "instance", "job", "service", "generic"],
-          "description": "Type of resource affected by the alert"
-        },
-        "id": {
-          "type": "string",
-          "maxLength": 255,
-          "description": "Optional resource identifier"
-        },
-        "region": {
-          "type": "string",
-          "maxLength": 50,
-          "pattern": "^[a-zA-Z0-9_-]+$",
-          "description": "Optional AWS region or equivalent"
-        },
-        "extra": {
-          "type": "object",
-          "additionalProperties": true,
-          "description": "Additional resource context (small map)"
-        }
-      },
-      "required": ["type"],
-      "additionalProperties": false,
-      "description": "Information about the resource affected by the alert"
-    },
     "identity": {
       "type": "object",
       "properties": {
@@ -182,15 +153,6 @@
       "priority": "P1",
       "occurred_at": "2024-01-15T10:30:00.000Z",
       "team": "platform-team",
-      "resource": {
-        "type": "instance",
-        "id": "i-1234567890abcdef0",
-        "region": "us-west-2",
-        "extra": {
-          "instance_type": "m5.large",
-          "availability_zone": "us-west-2a"
-        }
-      },
       "identity": {
         "aws_account": "123456789012",
         "region": "us-west-2",

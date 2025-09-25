@@ -1,5 +1,5 @@
 import { BaseTransformer } from "./base";
-import { AlertEvent, Envelope, AlertResource, AlertIdentity, AlertLinks } from "../types";
+import { AlertEvent, Envelope, AlertIdentity, AlertLinks } from "../types";
 
 export class GrafanaTransformer extends BaseTransformer {
   transform(rawPayload: any, envelope: Envelope): AlertEvent {
@@ -43,15 +43,6 @@ export class GrafanaTransformer extends BaseTransformer {
     const team = this.extractTeam(teamValue);
     const occurredAt = this.extractOccurredAt(alert, rawPayload);
 
-    // TODO: We should drop this resource type from the design since our alerts will not be sending
-    //       resources to us
-    // Build resource information
-    const resource: AlertResource = {
-      type: this.extractResourceType(labels),
-      id: labels.resource_id || labels.instance || undefined,
-      region: labels.region || undefined,
-      extra: this.extractResourceExtra(labels),
-    };
 
     // Build identity information
     const identity: AlertIdentity = {
@@ -78,7 +69,6 @@ export class GrafanaTransformer extends BaseTransformer {
       priority,
       occurred_at: occurredAt,
       team,
-      resource,
       identity,
       links,
       raw_provider: rawPayload,
@@ -148,31 +138,6 @@ export class GrafanaTransformer extends BaseTransformer {
     return new Date().toISOString();
   }
 
-  private extractResourceType(labels: any): AlertResource["type"] {
-    const resourceType = labels.resource_type || labels.type;
-
-    if (resourceType) {
-      const normalized = resourceType.toLowerCase();
-      if (["runner", "instance", "job", "service"].includes(normalized)) {
-        return normalized as AlertResource["type"];
-      }
-    }
-
-    return "generic";
-  }
-
-  private extractResourceExtra(labels: any): Record<string, any> | undefined {
-    const extra: Record<string, any> = {};
-
-    // Add any additional labels that might be useful
-    for (const [key, value] of Object.entries(labels || {})) {
-      if (!["alertname", "team", "priority", "resource_type", "resource_id"].includes(key)) {
-        extra[key] = value;
-      }
-    }
-
-    return Object.keys(extra).length > 0 ? extra : undefined;
-  }
 
   // Extract debugging context for error messages
   private extractDebugContext(rawPayload: any, envelope: Envelope): string {

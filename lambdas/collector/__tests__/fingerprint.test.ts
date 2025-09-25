@@ -48,18 +48,6 @@ describe('generateFingerprint', () => {
     expect(modifiedFingerprint).not.toBe(baseFingerprint);
   });
 
-  it('should change fingerprint when resource changes', () => {
-    const baseAlert = testAlertEvents.grafanaFiring;
-    const modifiedAlert = {
-      ...baseAlert,
-      resource: { ...baseAlert.resource, id: 'different-id' }
-    };
-
-    const baseFingerprint = generateFingerprint(baseAlert);
-    const modifiedFingerprint = generateFingerprint(modifiedAlert);
-
-    expect(modifiedFingerprint).not.toBe(baseFingerprint);
-  });
 
   it('should be consistent across state changes', () => {
     const firingAlert = testAlertEvents.grafanaFiring;

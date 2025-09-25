@@ -16,14 +16,6 @@ describe("NormalizedTransformer", () => {
     priority: "P1",
     occurred_at: "2024-01-15T10:30:00.000Z",
     team: "platform-team",
-    resource: {
-      type: "instance",
-      id: "i-1234567890abcdef0",
-      region: "us-west-2",
-      extra: {
-        instance_type: "m5.large"
-      }
-    },
     identity: {
       aws_account: "123456789012",
       region: "us-west-2",
@@ -156,18 +148,6 @@ describe("NormalizedTransformer", () => {
         .toThrow(/AlertEvent validation failed/);
     });
 
-    it("should throw error for invalid resource structure", () => {
-      const invalidAlerts = [
-        { ...validNormalizedAlert, resource: null },
-        { ...validNormalizedAlert, resource: "string" },
-        { ...validNormalizedAlert, resource: {} } // missing type
-      ];
-
-      invalidAlerts.forEach((alert) => {
-        expect(() => transformer.transform(alert, mockEnvelope))
-          .toThrow(/AlertEvent validation failed/);
-      });
-    });
 
     it("should throw error for invalid identity structure", () => {
       const invalidAlerts = [
@@ -256,21 +236,6 @@ describe("NormalizedTransformer", () => {
       expect(result.raw_provider).toEqual({});
     });
 
-    it("should handle missing optional resource fields", () => {
-      const alert = {
-        ...validNormalizedAlert,
-        resource: {
-          type: "generic"
-          // id, region, extra are optional
-        }
-      };
-      const result = transformer.transform(alert, mockEnvelope);
-
-      expect(result.resource.type).toBe("generic");
-      expect(result.resource.id).toBeUndefined();
-      expect(result.resource.region).toBeUndefined();
-      expect(result.resource.extra).toBeUndefined();
-    });
 
     it("should handle empty identity and links objects", () => {
       const alert = {
