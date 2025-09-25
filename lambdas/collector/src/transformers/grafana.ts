@@ -78,7 +78,10 @@ export class GrafanaTransformer extends BaseTransformer {
       title,
       description: this.sanitizeString(annotations.description || "", 1500),
       summary: this.sanitizeString(annotations.summary || "", 1500),
-      reason: this.sanitizeString(alert.valueString || "", 500),
+      reason: this.sanitizeString(
+        this.parseValueString(alert.valueString || ""),
+        500,
+      ),
       priority,
       occurred_at: occurredAt,
       team,
@@ -153,6 +156,72 @@ export class GrafanaTransformer extends BaseTransformer {
     }
 
     return new Date().toISOString();
+  }
+
+  private parseValueString(valueString: string): string {
+    if (!valueString || typeof valueString !== "string") {
+      return "";
+    }
+
+    try {
+      // Parse the valueString format: "[ var=name labels={key=value} value=123 ]" or "[ var=name value=123 ]"
+      const matches = valueString.match(
+        /\[\s*var=([^,\s]+)(?:\s+labels=\{([^}]*)\})?\s+value=([^,\s\]]+)\s*\]/g,
+      );
+
+      if (!matches) {
+        return valueString; // Return original if parsing fails
+      }
+
+      const labelGroups = new Map<
+        string,
+        Array<{ var: string; value: string }>
+      >();
+
+      // Parse each match
+      for (const match of matches) {
+        const innerMatch = match.match(
+          /\[\s*var=([^,\s]+)(?:\s+labels=\{([^}]*)\})?\s+value=([^,\s\]]+)\s*\]/,
+        );
+
+        if (!innerMatch) continue;
+
+        const varName = innerMatch[1].trim();
+        const labels = innerMatch[2] ? innerMatch[2].trim() : ""; // Handle optional labels
+        const value = innerMatch[3].trim();
+
+        // Use labels as the grouping key (empty string for no labels)
+        const groupKey = labels;
+
+        if (!labelGroups.has(groupKey)) {
+          labelGroups.set(groupKey, []);
+        }
+
+        labelGroups.get(groupKey)!.push({ var: varName, value });
+      }
+
+      const result: string[] = [];
+
+      // Process each label group
+      for (const [labels, items] of labelGroups) {
+        const varValuePairs = items
+          .map((item) => `${item.var}=${item.value}`)
+          .join(", ");
+
+        if (labels) {
+          // Group has labels - include them in the output
+          result.push(`[${labels}] ${varValuePairs}`);
+        } else {
+          // No labels - just output the var=value pairs
+          result.push(varValuePairs);
+        }
+      }
+
+      return result.join("; ");
+    } catch (error) {
+      // If parsing fails, return the original string
+      return valueString;
+    }
   }
 
   // Extract debugging context for error messages
