@@ -32,7 +32,7 @@ describe("GrafanaTransformer", () => {
         title: "Test Alert",
         description: "Test alert description",
         priority: "P1",
-        team: "dev-infra",
+        teams: ["dev-infra"],
         identity: {
           account_id: "1",
           alarm_id: "abc123",
@@ -57,7 +57,7 @@ describe("GrafanaTransformer", () => {
         state: "RESOLVED",
         title: "Test Alert",
         priority: "P1",
-        team: "dev-infra",
+        teams: ["dev-infra"],
       });
     });
 
@@ -81,7 +81,7 @@ describe("GrafanaTransformer", () => {
 
       const result = transformer.transform(payload, mockEnvelope);
 
-      expect(result.team).toBe("platform-team");
+      expect(result.teams).toEqual(["platform-team"]);
       expect(result.priority).toBe("P2");
     });
 
@@ -393,7 +393,7 @@ describe("GrafanaTransformer", () => {
         };
 
         const result = transformer.transform(payload, mockEnvelope);
-        expect(result.team).toBe(expected);
+        expect(result.teams).toEqual([expected]);
       });
     });
   });

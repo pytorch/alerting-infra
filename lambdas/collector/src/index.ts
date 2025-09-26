@@ -35,7 +35,7 @@ async function createGitHubIssueForAlert(
       `**Alert Details**\n`,
       `- *Occurred At*: ${formatTimestampToPST(alertEvent.occurred_at)}\n`,
       `- *State*: ${alertEvent.state}\n`,
-      `- *Team*: ${alertEvent.team}\n`,
+      `- *Team${alertEvent.teams.length > 1 ? "s" : ""}*: ${alertEvent.teams.join(", ")}\n`,
       `- *Priority*: ${alertEvent.priority}\n`,
       alertEvent.description
         ? `- *Description*: ${alertEvent.description}\n`
@@ -59,14 +59,25 @@ async function createGitHubIssueForAlert(
       .filter(Boolean)
       .join("");
 
-    // Create labels based on priority, team, source, and default area label
+    // Create labels based on priority, teams, source, and default area label
     // Note: Team names are already normalized (spaces escaped) by transformers
     const labels = [
       "area:alerting", // Default label for all alerts
       `Pri:${alertEvent.priority}`,
-      `Team:${alertEvent.team}`,
+      ...alertEvent.teams.map((team) => `Team:${team}`), // Create a Team:X label for each team
       `Source:${alertEvent.source}`,
     ];
+
+    // Ensure Team:X labels exist before creating the issue
+    try {
+      await githubClient.ensureTeamLabels(alertEvent.teams);
+    } catch (error) {
+      console.warn("Failed to ensure team labels exist", {
+        teams: alertEvent.teams,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Continue with issue creation even if label creation fails
+    }
 
     const issueNumber = await githubClient.createGithubIssue(
       issueTitle,
@@ -224,7 +235,7 @@ export const handler: SQSHandler = async (event) => {
               description: alertEvent.description,
               reason: alertEvent.reason,
               priority: alertEvent.priority,
-              team: alertEvent.team,
+              teams: alertEvent.teams,
               occurred_at: alertEvent.occurred_at,
               identity: alertEvent.identity,
               links: alertEvent.links,
@@ -248,7 +259,7 @@ export const handler: SQSHandler = async (event) => {
           const wouldCreateLabels = [
             "area:alerting",
             `Pri:${alertEvent.priority}`,
-            `Team:${alertEvent.team}`,
+            ...alertEvent.teams.map((team: string) => `Team:${team}`),
             `Source:${alertEvent.source}`,
           ];
           console.log(`   Title: ${wouldCreateIssue}`);

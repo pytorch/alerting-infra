@@ -118,13 +118,40 @@ export abstract class BaseTransformer {
     );
   }
 
-  // Extract team from string - fail fast for missing values
-  protected extractTeam(input: string): string {
+  // Extract multiple teams from comma-delimited string - supports both "team" and "teams" keywords
+  protected extractTeams(input: string): string[] {
     if (!input || !input.trim()) {
-      throw new Error("Team field is empty or missing");
+      throw new Error("Teams field is empty or missing");
     }
-    // Replaces spaces with hyphens for tooling compatibility
-    return input.trim().toLowerCase().replace(/\s+/g, "-");
+
+    // Split by comma and clean up each team name
+    const teams = input
+      .split(",")
+      .map((team) => team.trim())
+      .filter((team) => team.length > 0)
+      .map((team) => {
+        // Security: Limit team name length
+        if (team.length > 50) {
+          throw new Error(
+            `Team name too long (max 50 characters): '${team.substring(0, 30)}...'`,
+          );
+        }
+        // Replaces spaces with hyphens for tooling compatibility
+        return team.toLowerCase().replace(/\s+/g, "-");
+      });
+
+    if (teams.length === 0) {
+      throw new Error(
+        "No valid team names found after parsing comma-delimited list",
+      );
+    }
+
+    // Security: Limit number of teams to prevent abuse
+    if (teams.length > 10) {
+      throw new Error(`Too many teams specified (max 10, got ${teams.length})`);
+    }
+
+    return teams;
   }
 
   // Safe string extraction with fallback
@@ -212,5 +239,47 @@ export abstract class BaseTransformer {
       console.warn(`Invalid URL format: ${url}`);
       return undefined;
     }
+  }
+
+  // Extract field value from multiple possible sources with case-insensitive matching
+  protected extractFieldValue(
+    fieldName: string,
+    sources: Record<string, any>[],
+    additionalVariants?: string[],
+  ): any {
+    // Generate case variants for a field name
+    const generateCaseVariants = (name: string): string[] => [
+      name,
+      name.toLowerCase(),
+      name.toUpperCase(),
+      name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
+      name.charAt(0).toUpperCase() + name.slice(1),
+    ];
+
+    // Start with additional variants (higher priority - like 'teams' over 'team')
+    let allVariants: string[] = [];
+    if (additionalVariants) {
+      for (const variant of additionalVariants) {
+        allVariants = allVariants.concat(generateCaseVariants(variant));
+      }
+    }
+
+    // Then add base field variants (lower priority)
+    allVariants = allVariants.concat(generateCaseVariants(fieldName));
+
+    // Remove duplicates while preserving order
+    const uniqueVariants = [...new Set(allVariants)];
+
+    for (const source of sources) {
+      if (!source || typeof source !== "object") continue;
+
+      for (const variant of uniqueVariants) {
+        if (variant in source && source[variant] != null) {
+          return source[variant];
+        }
+      }
+    }
+
+    return undefined;
   }
 }

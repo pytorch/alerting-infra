@@ -224,6 +224,18 @@ export class GitHubClient {
     }
   }
 
+  async ensureTeamLabels(teams: string[]): Promise<void> {
+    if (!this.githubRepo) throw new Error("GITHUB_REPO not set");
+    const [owner, repo] = this.githubRepo.split("/");
+    const token = await this.getInstallationToken();
+
+    // Create Team:X labels for each team
+    for (const team of teams) {
+      const labelName = `Team:${team}`;
+      await this.ensureGithubLabel(owner, repo, token, labelName, "1f883d");
+    }
+  }
+
   async createGithubIssue(
     title: string,
     body: string,

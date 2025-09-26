@@ -27,18 +27,23 @@ export class AlertStateManager {
         return null;
       }
 
-      // Basic validation of required fields
+      // Basic validation of required fields - support both legacy team and new teams formats
       const item = result.Item;
       if (
         typeof item.fingerprint !== "string" ||
         typeof item.status !== "string" ||
-        typeof item.team !== "string"
+        (typeof item.team !== "string" && !Array.isArray(item.teams))
       ) {
         console.error("Invalid AlertState structure in DynamoDB", {
           fingerprint,
           itemKeys: Object.keys(item),
         });
         throw new Error("Invalid AlertState data structure in database");
+      }
+
+      // Migration: Convert legacy single team to teams array if needed
+      if (item.team && !item.teams) {
+        item.teams = [item.team];
       }
 
       return item as AlertState;
@@ -64,7 +69,7 @@ export class AlertStateManager {
     const alertState: AlertState = {
       fingerprint,
       status: alertEvent.state === "FIRING" ? "OPEN" : "CLOSED",
-      team: alertEvent.team,
+      teams: alertEvent.teams,
       priority: alertEvent.priority,
       title: alertEvent.title,
       issue_repo: process.env.GITHUB_REPO || "unknown/unknown",
@@ -92,7 +97,7 @@ export class AlertStateManager {
       console.log("Alert state saved", {
         fingerprint,
         status: alertState.status,
-        team: alertState.team,
+        teams: alertState.teams,
         priority: alertState.priority,
       });
     } catch (error) {

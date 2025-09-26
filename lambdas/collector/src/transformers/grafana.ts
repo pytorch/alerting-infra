@@ -23,18 +23,17 @@ export class GrafanaTransformer extends BaseTransformer {
     const state = this.extractState(rawPayload, alert);
 
     // Priority and team are required and expected in annotations based on reference data
-    const priorityValue =
-      annotations.Priority ||
-      annotations.priority ||
-      labels.priority ||
-      rawPayload.priority;
+    const priorityValue = this.extractFieldValue("priority", [
+      annotations,
+      labels,
+      rawPayload,
+    ]);
 
-    const teamValue =
-      annotations.Team ||
-      annotations.TEAM ||
-      annotations.team ||
-      labels.team ||
-      rawPayload.team;
+    const teamValue = this.extractFieldValue(
+      "team",
+      [annotations, labels, rawPayload],
+      ["teams"], // Additional variant for plural form
+    );
 
     if (!priorityValue) {
       throw new Error(
@@ -48,7 +47,7 @@ export class GrafanaTransformer extends BaseTransformer {
     }
 
     const priority = this.extractPriority(priorityValue);
-    const team = this.extractTeam(teamValue);
+    const teams = this.extractTeams(teamValue);
     const occurredAt = this.extractOccurredAt(alert, rawPayload);
 
     // Build identity information
@@ -84,7 +83,7 @@ export class GrafanaTransformer extends BaseTransformer {
       ),
       priority,
       occurred_at: occurredAt,
-      team,
+      teams,
       identity,
       links,
       raw_provider: rawPayload,
@@ -250,17 +249,25 @@ export class GrafanaTransformer extends BaseTransformer {
       context.push(`orgId=${rawPayload.orgId}`);
     }
 
-    // Include team if available
-    const team =
-      rawPayload?.alerts?.[0]?.annotations?.Team ||
-      rawPayload?.alerts?.[0]?.annotations?.TEAM ||
-      rawPayload?.alerts?.[0]?.annotations?.team ||
-      rawPayload?.alerts?.[0]?.labels?.team ||
-      rawPayload?.commonAnnotations?.Team ||
-      rawPayload?.commonAnnotations?.TEAM ||
-      rawPayload?.commonLabels?.team;
-    if (team) {
-      context.push(`team="${team}"`);
+    // Include teams if available
+    const teamValue = this.extractFieldValue(
+      "team",
+      [
+        rawPayload?.alerts?.[0]?.annotations || {},
+        rawPayload?.alerts?.[0]?.labels || {},
+        rawPayload?.commonAnnotations || {},
+        rawPayload?.commonLabels || {},
+      ],
+      ["teams"], // Additional variant for plural form
+    );
+    if (teamValue) {
+      try {
+        const teams = this.extractTeams(teamValue);
+        context.push(`teams="${teams.join(", ")}"`);
+      } catch {
+        // Fallback to showing raw value if parsing fails
+        context.push(`team="${teamValue}"`);
+      }
     }
 
     // Include generator URL for direct debugging link

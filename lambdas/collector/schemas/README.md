@@ -41,7 +41,7 @@ const alert = {
   title: "High CPU Usage",
   priority: "P1",
   occurred_at: "2024-01-15T10:30:00.000Z",
-  team: "platform-team",
+  teams: ["platform-team"],
   identity: { account_id: "123456789012", alarm_id: "cpu-high" },
   links: { runbook_url: "https://wiki.company.com/cpu-runbook" },
 };
@@ -71,7 +71,7 @@ alert = {
     "title": "High CPU Usage",
     "priority": "P1",
     "occurred_at": "2024-01-15T10:30:00.000Z",
-    "team": "platform-team",
+    "teams": ["platform-team"],
     "identity": {"account_id": "123456789012", "alarm_id": "cpu-high"},
     "links": {"runbook_url": "https://wiki.company.com/cpu-runbook"}
 }
@@ -104,7 +104,7 @@ func main() {
         "title":          "High CPU Usage",
         "priority":       "P1",
         "occurred_at":    "2024-01-15T10:30:00.000Z",
-        "team":           "platform-team",
+        "teams":          []string{"platform-team"},
         "identity":       map[string]interface{}{"account_id": "123456789012", "alarm_id": "cpu-high"},
         "links":          map[string]interface{}{"runbook_url": "https://wiki.company.com/cpu-runbook"},
     }
@@ -138,7 +138,7 @@ func main() {
 | `title`          | string  | Alert title (max 500 chars)  |
 | `priority`       | enum    | "P0", "P1", "P2", or "P3"    |
 | `occurred_at`    | string  | ISO8601 timestamp            |
-| `team`           | string  | Owning team identifier       |
+| `teams`          | array   | Owning team identifiers      |
 | `identity`       | object  | Identity for fingerprinting  |
 | `links`          | object  | Navigation links             |
 
@@ -155,8 +155,13 @@ func main() {
 
 - **URLs**: Must be valid HTTP/HTTPS URLs (max 2048 chars)
 - **Account ID**: Alphanumeric, hyphens, underscores only (max 100 chars)
-- **CloudWatch ARN**: Must start with "arn:aws:cloudwatch:"
-- **Source/Team**: Alphanumeric, hyphens, underscores only
+- **Teams**: Array of 1-10 team names, each max 50 chars, alphanumeric/hyphens/underscores only
+- **Source**: Alphanumeric, hyphens, underscores only (max 50 chars)
+- **Title**: Max 500 characters
+- **Description**: Max 4000 characters
+- **Summary**: Max 1000 characters
+- **Reason**: Max 2000 characters
+- **Alarm ID**: Any string up to 1024 characters (CloudWatch ARN, Grafana rule ID, etc.)
 
 ## 🔄 Schema Evolution
 

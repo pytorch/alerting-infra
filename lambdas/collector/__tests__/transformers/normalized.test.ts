@@ -15,7 +15,7 @@ describe("NormalizedTransformer", () => {
     summary: "Critical CPU alert",
     priority: "P1",
     occurred_at: "2024-01-15T10:30:00.000Z",
-    team: "platform-team",
+    teams: ["platform-team"],
     identity: {
       account_id: "123456789012",
       region: "us-west-2",
@@ -48,7 +48,7 @@ describe("NormalizedTransformer", () => {
       expect(result.source).toBe("datadog");
       expect(result.state).toBe("FIRING");
       expect(result.priority).toBe("P1");
-      expect(result.team).toBe("platform-team");
+      expect(result.teams).toEqual(["platform-team"]);
     });
 
     it("should handle RESOLVED state", () => {
@@ -103,7 +103,7 @@ describe("NormalizedTransformer", () => {
         "title",
         "priority",
         "occurred_at",
-        "team",
+        "teams",
         "identity",
         "links",
       ];

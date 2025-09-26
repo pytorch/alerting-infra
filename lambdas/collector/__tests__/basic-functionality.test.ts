@@ -31,7 +31,7 @@ describe("Basic Functionality Tests", () => {
       expect(result.source).toBe("grafana");
       expect(result.state).toBe("FIRING");
       expect(result.title).toBe("Test Alert");
-      expect(result.team).toBe("dev-infra");
+      expect(result.teams).toEqual(["dev-infra"]);
       expect(result.priority).toBe("P1");
     });
 
@@ -63,7 +63,7 @@ describe("Basic Functionality Tests", () => {
       expect(result.source).toBe("cloudwatch");
       expect(result.state).toBe("FIRING");
       expect(result.title).toBe("High CPU Usage");
-      expect(result.team).toBe("platform");
+      expect(result.teams).toEqual(["platform"]);
       expect(result.priority).toBe("P2");
     });
 
