@@ -23,6 +23,7 @@ A production-ready alert normalization pipeline that processes CloudWatch and Gr
   - [Webhook Configuration](#webhook-configuration)
   - [Adding New Webhook Emitters](#adding-new-webhook-emitters)
   - [Alert Source Configuration](#alert-source-configuration)
+- [📋 Operations Guide](#-operations-guide)
 - [🏛️ Infrastructure Details](#️-infrastructure-details)
 - [📊 Monitoring & Observability](#-monitoring--observability)
 - [🔧 Troubleshooting](#-troubleshooting)
@@ -524,6 +525,12 @@ annotations:
   runbook_url: https://runbook.example.com
   description: Database connection pool exhausted
 ```
+
+## 📋 Operations Guide
+
+For detailed instructions on configuring new alerts in Grafana and CloudWatch, see [OPERATIONS.md](OPERATIONS.md).
+
+This guide covers how to add an new alert, with examples
 
 ## 🏛️ Infrastructure Details
 
