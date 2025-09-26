@@ -8,22 +8,24 @@ The alert processing system expects specific labels/metadata to properly categor
 
 ## Grafana Alerts
 
-### Required Labels
+### Required Annotations
+We map extra fields using what Grafana calls "Custom annotation name and content"
 
-These must be present in labels:
+These must be present on every alert for it to fire:
 
-- **`team`** - The owning team identifier (e.g., `dev-infra`, `training`, `ci`)
+They're basically key/value pairs:
+- **`team`** - The owning team identifier (e.g., `pytorch-dev-infra`, `pytorch-benchmarking`)
 - **`priority`** - Alert severity level: `P0`, `P1`, `P2`, or `P3`
 
-### Optional Labels
+### Optional Annotations
 
 - **`runbook_url`** - Link to troubleshooting documentation
 
 ### Native Grafana Fields
 
-These are automatically picked up if present:
-- **`description`** - Alert description (native Grafana annotation)
-- **`summary`** - Alert summary (native Grafana annotation)
+These fileds will also be populated in the alerts
+- **`description`** - Alert description
+- **`summary`** - Alert summary
 
 ### Configuration
 
