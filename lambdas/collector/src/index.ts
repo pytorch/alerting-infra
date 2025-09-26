@@ -5,6 +5,7 @@ import { AlertProcessor } from "./processor";
 import { generateFingerprint } from "./fingerprint";
 import { AlertStateManager } from "./database";
 import { GitHubClient } from "./github/githubClient";
+import { formatTimestampToPST } from "./utils/dateFormatter";
 
 const tableName = process.env.STATUS_TABLE_NAME;
 const githubRepo = process.env.GITHUB_REPO || ""; // format: org/repo
@@ -32,28 +33,28 @@ async function createGitHubIssueForAlert(
       // Add summary at the top if available
       alertEvent.summary ? `**${alertEvent.summary}**\n\n` : "",
       `**Alert Details**\n`,
-      `- **Occurred At**: ${alertEvent.occurred_at}\n`,
-      `- **State**: ${alertEvent.state}\n`,
-      `- **Team**: ${alertEvent.team}\n`,
-      `- **Priority**: ${alertEvent.priority}\n`,
+      `- *Occurred At*: ${formatTimestampToPST(alertEvent.occurred_at)}\n`,
+      `- *State*: ${alertEvent.state}\n`,
+      `- *Team*: ${alertEvent.team}\n`,
+      `- *Priority*: ${alertEvent.priority}\n`,
       alertEvent.description
-        ? `- **Description**: ${alertEvent.description}\n`
+        ? `- *Description*: ${alertEvent.description}\n`
         : "",
-      alertEvent.reason ? `- **Reason**: ${alertEvent.reason}\n` : "",
+      alertEvent.reason ? `- *Reason*: ${alertEvent.reason}\n` : "",
       alertEvent.links?.runbook_url
-        ? `- **Runbook**: ${alertEvent.links.runbook_url}\n`
+        ? `- *Runbook*: ${alertEvent.links.runbook_url}\n`
         : "",
       alertEvent.links?.dashboard_url
-        ? `- **Dashboard**: ${alertEvent.links.dashboard_url}\n`
+        ? `- *Dashboard*: ${alertEvent.links.dashboard_url}\n`
         : "",
       alertEvent.links?.source_url
-        ? `- **View Alert**: ${alertEvent.links.source_url}\n`
+        ? `- *View Alert*: ${alertEvent.links.source_url}\n`
         : "",
       alertEvent.links?.silence_url
-        ? `- **Silence Alert**: ${alertEvent.links.silence_url}\n`
+        ? `- *Silence Alert*: ${alertEvent.links.silence_url}\n`
         : "",
-      `- **Source**: ${alertEvent.source}\n`,
-      `- **Fingerprint**: \`${fingerprint}\`\n`,
+      `- *Source*: ${alertEvent.source}\n`,
+      `- *Fingerprint*: \`${fingerprint}\`\n`,
     ]
       .filter(Boolean)
       .join("");
@@ -131,7 +132,7 @@ async function commentOnGitHubIssueForAlert(
     const commentBody = [
       `**Alert Update**`,
       `- **State**: ${alertEvent.state}`,
-      `- **Occurred At**: ${alertEvent.occurred_at}`,
+      `- **Occurred At**: ${formatTimestampToPST(alertEvent.occurred_at)}`,
       alertEvent.reason ? `- **Reason**: ${alertEvent.reason}` : "",
       "",
       "The alert condition is still active.",

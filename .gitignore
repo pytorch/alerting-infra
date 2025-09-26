@@ -25,3 +25,5 @@ scratch/
 
 # Watchman temporary files
 .watchman-cookie-*
+
+worktrees/
