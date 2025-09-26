@@ -31,7 +31,7 @@ describe("CloudWatchTransformer", () => {
         state: "FIRING",
         title: "High CPU Usage",
         priority: "P2",
-        team: "platform",
+        teams: ["platform"],
         identity: {
           account_id: "123456789012",
           region: "us-east-1",
@@ -91,7 +91,7 @@ describe("CloudWatchTransformer", () => {
 
       const result = transformer.transform(customAlarm, mockEnvelope);
 
-      expect(result.team).toBe("devops");
+      expect(result.teams).toEqual(["devops"]);
       expect(result.priority).toBe("P1");
       expect(result.links?.runbook_url).toBe(
         "https://runbooks.example.com/cpu",
@@ -112,7 +112,7 @@ describe("CloudWatchTransformer", () => {
 
       const result = transformer.transform(customAlarm, mockEnvelope);
 
-      expect(result.team).toBe("devops");
+      expect(result.teams).toEqual(["devops"]);
       expect(result.priority).toBe("P1");
       expect(result.links?.runbook_url).toBe(
         "https://runbooks.example.com/cpu",
@@ -237,7 +237,7 @@ describe("CloudWatchTransformer", () => {
       };
 
       expect(() => transformer.transform(invalidAlarm, mockEnvelope)).toThrow(
-        'Missing required field "TEAM"',
+        'Missing required field "TEAMS"',
       );
     });
 
@@ -265,8 +265,8 @@ describe("CloudWatchTransformer", () => {
 
       const result = transformer.transform(customAlarm, mockEnvelope);
 
-      expect(result.team).not.toContain("<script>");
-      expect(result.team).toBe("scriptalert(xss)/scriptplatform");
+      expect(result.teams).toEqual(["scriptalert(xss)/scriptplatform"]);
+      expect(result.teams[0]).not.toContain("<script>");
       expect(result.links?.runbook_url).toBeUndefined(); // Invalid URL should be filtered
       expect(result.description).toContain(
         "Description with quotes and apostrophes",
@@ -292,7 +292,7 @@ describe("CloudWatchTransformer", () => {
 
       const result = transformer.transform(customAlarm, mockEnvelope);
 
-      expect(result.team).toBe("platform");
+      expect(result.teams).toEqual(["platform"]);
       expect(result.priority).toBe("P1");
       expect(result.links?.runbook_url).toBe(
         "https://runbooks.example.com/test",

@@ -15,7 +15,7 @@ class TestTransformer extends BaseTransformer {
       reason: "",
       priority: this.extractPriority(rawPayload.priority),
       occurred_at: this.parseTimestamp(rawPayload.timestamp),
-      team: this.extractTeam(rawPayload.team),
+      teams: this.extractTeams(rawPayload.teams),
       identity: { account_id: "", alarm_id: "" },
       links: {},
       raw_provider: rawPayload,
@@ -213,33 +213,35 @@ describe("BaseTransformer", () => {
     });
   });
 
-  describe("extractTeam", () => {
+  describe("extractTeams", () => {
     it("should extract and normalize team names", () => {
-      expect(transformer["extractTeam"]("DevOps")).toBe("devops");
-      expect(transformer["extractTeam"]("DEV-INFRA")).toBe("dev-infra");
+      expect(transformer["extractTeams"]("DevOps")).toEqual(["devops"]);
+      expect(transformer["extractTeams"]("DEV-INFRA")).toEqual(["dev-infra"]);
     });
 
     it("should replace spaces with hyphens for tooling compatibility", () => {
-      expect(transformer["extractTeam"]("Platform Team")).toBe("platform-team");
-      expect(transformer["extractTeam"](" Multi  Word Team ")).toBe(
+      expect(transformer["extractTeams"]("Platform Team")).toEqual([
+        "platform-team",
+      ]);
+      expect(transformer["extractTeams"](" Multi  Word Team ")).toEqual([
         "multi-word-team",
-      );
+      ]);
     });
 
     it("should trim whitespace", () => {
-      expect(transformer["extractTeam"](" dev-infra ")).toBe("dev-infra");
-      expect(transformer["extractTeam"]("  PLATFORM  ")).toBe("platform");
+      expect(transformer["extractTeams"](" dev-infra ")).toEqual(["dev-infra"]);
+      expect(transformer["extractTeams"]("  PLATFORM  ")).toEqual(["platform"]);
     });
 
     it("should throw error for empty team names", () => {
-      expect(() => transformer["extractTeam"]("")).toThrow(
-        "Team field is empty or missing",
+      expect(() => transformer["extractTeams"]("")).toThrow(
+        "Teams field is empty or missing",
       );
-      expect(() => transformer["extractTeam"]("   ")).toThrow(
-        "Team field is empty or missing",
+      expect(() => transformer["extractTeams"]("   ")).toThrow(
+        "Teams field is empty or missing",
       );
-      expect(() => transformer["extractTeam"](null as any)).toThrow(
-        "Team field is empty or missing",
+      expect(() => transformer["extractTeams"](null as any)).toThrow(
+        "Teams field is empty or missing",
       );
     });
   });

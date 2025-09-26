@@ -31,7 +31,7 @@ export class NormalizedTransformer extends BaseTransformer {
       console.log("Processed normalized alert", {
         source: alertEvent.source,
         title: alertEvent.title,
-        team: alertEvent.team,
+        teams: alertEvent.teams,
         priority: alertEvent.priority,
         state: alertEvent.state,
         schema_version: alertEvent.schema_version,

@@ -59,14 +59,20 @@ export class CloudWatchTransformer extends BaseTransformer {
         `Missing required field "PRIORITY" in CloudWatch AlarmDescription. Please add this to make the alert work. ${debugContext}`,
       );
     }
-    if (!descriptionParsed.metadata.TEAM) {
+    // Support both TEAM and TEAMS keywords for multi-team support
+    const teamValue = this.extractFieldValue(
+      "TEAM",
+      [descriptionParsed.metadata],
+      ["TEAMS"], // Additional variant for plural form
+    );
+    if (!teamValue) {
       throw new Error(
-        `Missing required field "TEAM" in CloudWatch AlarmDescription. Please add this to make the alert work. ${debugContext}`,
+        `Missing required field "TEAMS" in CloudWatch AlarmDescription. Please add this to make the alert work. ${debugContext}`,
       );
     }
 
     const priority = this.extractPriority(descriptionParsed.metadata.PRIORITY);
-    const team = this.extractTeam(descriptionParsed.metadata.TEAM);
+    const teams = this.extractTeams(teamValue);
 
     // Build identity information
     const identity: AlertIdentity = {
@@ -93,7 +99,7 @@ export class CloudWatchTransformer extends BaseTransformer {
       reason: this.sanitizeString(alarmData.NewStateReason || "", 1000),
       priority,
       occurred_at: occurredAt,
-      team,
+      teams,
       identity,
       links,
       raw_provider: rawPayload,
@@ -153,8 +159,8 @@ export class CloudWatchTransformer extends BaseTransformer {
           .map((pair) => pair.trim())
           .slice(0, 10);
 
-    // Whitelist of allowed keys to prevent injection
-    const ALLOWED_KEYS = ["TEAM", "PRIORITY", "RUNBOOK", "SUMMARY"];
+    // Whitelist of allowed keys to prevent injection (support both TEAM and TEAMS)
+    const ALLOWED_KEYS = ["TEAM", "TEAMS", "PRIORITY", "RUNBOOK", "SUMMARY"];
 
     for (const line of lines) {
       // Skip empty lines
@@ -285,11 +291,21 @@ export class CloudWatchTransformer extends BaseTransformer {
       context.push(`AWSAccountId=${alarmData.AWSAccountId}`);
     }
 
-    // Include team if available in AlarmDescription
     if (alarmData?.AlarmDescription) {
-      const teamMatch = alarmData.AlarmDescription.match(/TEAM=([^\n|]+)/);
+      const teamMatch = alarmData.AlarmDescription.match(/TEAMS?=([^\n|]+)/i);
+
       if (teamMatch?.[1]) {
-        context.push(`team="${teamMatch[1].trim()}"`);
+        try {
+          // Parse comma-delimited teams for display
+          const teamValue = teamMatch[1].trim();
+          const teams = teamValue
+            .split(",")
+            .map((t: string) => t.trim())
+            .filter((t: string) => t.length > 0);
+          context.push(`teams="${teams.join(", ")}"`);
+        } catch {
+          context.push(`teams="${teamMatch[1].trim()}"`);
+        }
       }
     }
 

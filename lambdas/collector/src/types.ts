@@ -35,7 +35,7 @@ export interface AlertEvent {
   reason?: string; // provider-specific reason/message (NewStateReason for CloudWatch, message for Grafana)
   priority: "P0" | "P1" | "P2" | "P3"; // single canonical concept; no severity field
   occurred_at: string; // provider state change time (ISO8601)
-  team: string; // owning team slug (single team in v1)
+  teams: string[]; // owning team slugs (supports multiple teams)
   identity: AlertIdentity;
   links: AlertLinks;
   raw_provider?: any; // minimally transformed provider payload for debugging
@@ -46,7 +46,7 @@ export interface AlertEvent {
 export interface AlertState {
   fingerprint: string; // Primary key
   status: "OPEN" | "CLOSED";
-  team: string;
+  teams: string[];
   priority: "P0" | "P1" | "P2" | "P3";
   title: string;
   issue_repo: string; // "pytorch/test-infra"

@@ -14,8 +14,8 @@ We map extra fields using what Grafana calls "Custom annotation name and content
 These must be present on every alert for it to fire:
 
 They're basically key/value pairs:
-- **`team`** - The owning team identifier (e.g., `pytorch-dev-infra`, `pytorch-benchmarking`)
-- **`priority`** - Alert severity level: `P0`, `P1`, `P2`, or `P3`
+- **`Teams`** - The owning team identifier(s). Supports multiple teams separated by commas (e.g., `pytorch-dev-infra, pytorch-benchmarking`)
+- **`Priority`** - Alert severity level: `P0`, `P1`, `P2`, or `P3`
 
 ### Optional Annotations
 
@@ -30,10 +30,10 @@ These fileds will also be populated in the alerts
 ### Configuration
 
 1. Create your alert rule in Grafana.  Give the outputs of the query meaningful names, otherwise Grafana will default to A, B, C
-2. Add the required fields in labels:
+2. Add the required fields in annotations:
    ```
-   team = dev-infra
-   priority = P1
+   Teams = dev-infra, platform
+   Priority = P1
    runbook_url = https://wiki.example.com/runbooks/disk-space
    ```
 3. Under "Configure Notification" enable "advanced options". Alerts will now get routed to our Dev and Prod channels
@@ -41,9 +41,9 @@ These fileds will also be populated in the alerts
 ### Example Configuration
 
 ```yaml
-labels:
-  team: "dev-infra"
-  priority: "P1"
+annotations:
+  Teams: "dev-infra, platform"
+  Priority: "P1"
   runbook_url: "https://wiki.pytorch.org/runbooks/disk-space"
 ```
 
@@ -55,7 +55,7 @@ CloudWatch alerts use the AlarmDescription field to pass metadata in a specific 
 
 These must be present in the AlarmDescription:
 
-- **`TEAM`** - Owning team identifier
+- **`TEAMS`** - Owning team identifier(s). Supports multiple teams separated by commas
 - **`PRIORITY`** - Priority level (`P0`, `P1`, `P2`, `P3`)
 
 ### Optional Fields
@@ -68,7 +68,7 @@ The AlarmDescription should contain your alert description, followed by metadata
 
 ```
 High CPU usage detected on production instances
-TEAM=dev-infra
+TEAMS=dev-infra, platform
 PRIORITY=P1
 RUNBOOK=https://wiki.pytorch.org/runbooks/high-cpu
 ```
@@ -91,7 +91,7 @@ When properly configured alerts fire:
 
 The resulting GitHub issue includes:
 - Normalized title and description
-- Team and priority labels
+- Multiple team labels (Team:dev-infra, Team:platform, etc.) and priority labels
 - Links to runbooks if provided
 - Debug information from original alert payload
 

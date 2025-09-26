@@ -53,7 +53,7 @@ export class AlertProcessor {
         metadata: {
           alertEvent,
           source: alertEvent.source,
-          team: alertEvent.team,
+          teams: alertEvent.teams,
           priority: alertEvent.priority,
           state: alertEvent.state,
         },

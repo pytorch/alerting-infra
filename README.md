@@ -386,7 +386,7 @@ interface AlertEvent {
   reason?: string;              // Provider-specific reason/message
   priority: "P0" | "P1" | "P2" | "P3"; // Canonical priority
   occurred_at: string;          // ISO8601 timestamp of state change
-  team: string;                 // Owning team identifier
+  teams: string[];              // Owning team identifiers (supports multiple teams)
   resource: {                   // Resource information
     type: "runner" | "instance" | "job" | "service" | "generic";
     id?: string;                // Resource identifier
@@ -421,7 +421,7 @@ interface AlertEvent {
   "summary": "Critical CPU alert on production web server",
   "priority": "P1",
   "occurred_at": "2024-01-15T10:30:00Z",
-  "team": "platform-team",
+  "teams": ["platform-team"],
   "resource": {
     "type": "instance",
     "id": "i-1234567890abcdef0",
@@ -512,19 +512,24 @@ aws secretsmanager update-secret \
 
 **CloudWatch Alarms** - Add to AlarmDescription:
 ```
-TEAM=dev-infra | PRIORITY=P1 | RUNBOOK=https://runbook.example.com
 High CPU usage detected on production instances.
+TEAMS=pytorch-dev-infra, pytorch-platform
+PRIORITY=P1
+RUNBOOK=https://runbook.example.com
 ```
 
-**Grafana Alerts** - Use labels:
+**Grafana Alerts** - Use annotations:
 ```yaml
-labels:
-  team: dev-infra
-  priority: P2
 annotations:
+  Teams: pytorch-dev-infra, pytorch-platform
+  Priority: P2
   runbook_url: https://runbook.example.com
   description: Database connection pool exhausted
 ```
+
+**Multi-Team Support**: Use comma-separated teams:
+- Single team: `TEAMS=dev-infra` or `Teams: dev-infra`
+- Multiple teams: `TEAMS=dev-infra, platform, security` or `Teams: dev-infra, platform, security`
 
 ## 📋 Operations Guide
 
@@ -610,7 +615,7 @@ All logs use structured JSON with correlation IDs:
   "messageId": "12345-abcde",
   "fingerprint": "abc123...",
   "action": "CREATE",
-  "team": "dev-infra",
+  "teams": ["pytorch-dev-infra", "pytorch-platform"],
   "priority": "P1",
   "source": "grafana"
 }
@@ -627,14 +632,19 @@ All logs use structured JSON with correlation IDs:
 4. Look for circuit breaker or rate limiting logs
 
 **Missing required fields error:**
-```bash
-# CloudWatch alerts need TEAM and PRIORITY in AlarmDescription
-TEAM=dev-infra | PRIORITY=P1 | RUNBOOK=https://...
 
-# Grafana alerts need team and priority labels
-labels:
-  team: dev-infra
-  priority: P2
+CloudWatch alerts need TEAMS and PRIORITY in AlarmDescription
+```bash
+TEAMS=dev-infra, platform
+PRIORITY=P1
+RUNBOOK=https://...
+```
+
+Grafana alerts need Teams and Priority annotations
+```
+annotations:
+  Teams: dev-infra, platform
+  Priority: P2
 ```
 
 **High DLQ depth:**
