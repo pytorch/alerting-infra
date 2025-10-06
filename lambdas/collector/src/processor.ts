@@ -100,11 +100,9 @@ export class AlertProcessor {
     rawPayload: any,
     envelope: Envelope,
   ): Promise<AlertEvent> {
-    // Get the appropriate transformer based on payload analysis
-    const source = this.detectSourceFromPayload(rawPayload);
     const transformer = getTransformerForRecord({
       body: JSON.stringify(rawPayload),
-      messageAttributes: { source: { stringValue: source } },
+      messageAttributes: { source: { stringValue: undefined } },
     } as any);
 
     return transformer.transform(rawPayload, envelope);
@@ -234,42 +232,5 @@ export class AlertProcessor {
     }
 
     return "unknown";
-  }
-
-  // Detect source from raw payload structure - improved detection logic
-  private detectSourceFromPayload(rawPayload: any): string {
-    if (!rawPayload || typeof rawPayload !== "object") {
-      throw new Error("Invalid payload: not an object");
-    }
-
-    // Check for Grafana-specific fields
-    if (
-      rawPayload.alerts ||
-      rawPayload.status ||
-      rawPayload.orgId ||
-      rawPayload.receiver
-    ) {
-      return "grafana";
-    }
-
-    // Check for CloudWatch SNS message structure
-    if (rawPayload.Type === "Notification" && rawPayload.Message) {
-      try {
-        const message = JSON.parse(rawPayload.Message);
-        if (message.AlarmName && message.NewStateValue) {
-          return "cloudwatch";
-        }
-      } catch {
-        // If Message parsing fails, continue with other checks
-      }
-    }
-
-    // Check for direct CloudWatch alarm structure
-    if (rawPayload.AlarmName && rawPayload.NewStateValue) {
-      return "cloudwatch";
-    }
-
-    // If we can't determine the source, fail fast
-    throw new Error("Unable to determine alert source from payload structure");
   }
 }

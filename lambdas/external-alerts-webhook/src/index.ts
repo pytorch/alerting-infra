@@ -88,6 +88,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         ? event.body
         : JSON.stringify(event.body ?? {});
 
+    // This webhook also receives non grafana alerts, but we tag everything as
+    // 'grafana' for now. The code that detects the source in the collector
+    // lambda doesn't currently look at this attribute.
     await sns.send(
       new PublishCommand({
         TopicArn: TOPIC_ARN,

@@ -7,3 +7,5 @@
 - [ ] Create test suite for webhook Lambda authentication and SNS publishing
 - [ ] Add GitHub workflow based deployment system
 - [ ] Move security/string sanitization methods to their own utility file
+- [ ] Fix documentation for team vs teams
+- [ ] Better handling for normalized webhooks in the external-alerts-webhook lambda?
