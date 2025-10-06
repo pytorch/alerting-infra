@@ -44,7 +44,7 @@ describe("Source Detection", () => {
         title: "Test Alert",
         priority: "P1",
         occurred_at: "2024-01-15T10:30:00.000Z",
-        team: "platform-team",
+        teams: ["platform-team"],
         identity: {},
         links: {},
       };
