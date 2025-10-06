@@ -41,7 +41,7 @@ export function detectAlertSource(sqsRecord: SQSRecord): string {
       body.state &&
       body.title &&
       body.priority &&
-      body.team
+      body.teams
     ) {
       return "normalized";
     }
