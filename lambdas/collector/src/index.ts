@@ -20,6 +20,48 @@ const stateManager = tableName
 const githubClient = new GitHubClient(githubRepo, githubAppSecretId, 10);
 
 /**
+ * Render the alert body shared between the initial issue and update comments.
+ *
+ * Keeping a single source of truth ensures update comments carry the same
+ * context as the filing (summary, team, priority, description, links) so
+ * watchers can read trends like queue size and queue time directly from the
+ * issue thread.
+ */
+function formatAlertBody(
+  alertEvent: import("./types").AlertEvent,
+  fingerprint: string,
+): string {
+  return [
+    alertEvent.summary ? `**${alertEvent.summary}**\n\n` : "",
+    `**Alert Details**\n`,
+    `- *Occurred At*: ${formatTimestampToPST(alertEvent.occurred_at)}\n`,
+    `- *State*: ${alertEvent.state}\n`,
+    `- *Team${alertEvent.teams.length > 1 ? "s" : ""}*: ${alertEvent.teams.join(", ")}\n`,
+    `- *Priority*: ${alertEvent.priority}\n`,
+    alertEvent.description
+      ? `- *Description*: ${alertEvent.description}\n`
+      : "",
+    alertEvent.reason ? `- *Reason*: ${alertEvent.reason}\n` : "",
+    alertEvent.links?.runbook_url
+      ? `- *Runbook*: ${alertEvent.links.runbook_url}\n`
+      : "",
+    alertEvent.links?.dashboard_url
+      ? `- *Dashboard*: ${alertEvent.links.dashboard_url}\n`
+      : "",
+    alertEvent.links?.source_url
+      ? `- *View Alert*: ${alertEvent.links.source_url}\n`
+      : "",
+    alertEvent.links?.silence_url
+      ? `- *Silence Alert*: ${alertEvent.links.silence_url}\n`
+      : "",
+    `- *Source*: ${alertEvent.source}\n`,
+    `- *Fingerprint*: \`${fingerprint}\`\n`,
+  ]
+    .filter(Boolean)
+    .join("");
+}
+
+/**
  * Create a GitHub issue for an alert
  */
 async function createGitHubIssueForAlert(
@@ -28,36 +70,7 @@ async function createGitHubIssueForAlert(
 ): Promise<{ success: boolean; issueNumber?: number; error?: string }> {
   try {
     const issueTitle = `[${alertEvent.priority}] ${alertEvent.title}`;
-
-    const issueBody = [
-      // Add summary at the top if available
-      alertEvent.summary ? `**${alertEvent.summary}**\n\n` : "",
-      `**Alert Details**\n`,
-      `- *Occurred At*: ${formatTimestampToPST(alertEvent.occurred_at)}\n`,
-      `- *State*: ${alertEvent.state}\n`,
-      `- *Team${alertEvent.teams.length > 1 ? "s" : ""}*: ${alertEvent.teams.join(", ")}\n`,
-      `- *Priority*: ${alertEvent.priority}\n`,
-      alertEvent.description
-        ? `- *Description*: ${alertEvent.description}\n`
-        : "",
-      alertEvent.reason ? `- *Reason*: ${alertEvent.reason}\n` : "",
-      alertEvent.links?.runbook_url
-        ? `- *Runbook*: ${alertEvent.links.runbook_url}\n`
-        : "",
-      alertEvent.links?.dashboard_url
-        ? `- *Dashboard*: ${alertEvent.links.dashboard_url}\n`
-        : "",
-      alertEvent.links?.source_url
-        ? `- *View Alert*: ${alertEvent.links.source_url}\n`
-        : "",
-      alertEvent.links?.silence_url
-        ? `- *Silence Alert*: ${alertEvent.links.silence_url}\n`
-        : "",
-      `- *Source*: ${alertEvent.source}\n`,
-      `- *Fingerprint*: \`${fingerprint}\`\n`,
-    ]
-      .filter(Boolean)
-      .join("");
+    const issueBody = formatAlertBody(alertEvent, fingerprint);
 
     // Create labels based on priority, teams, source, and default area label
     // Note: Team names are already normalized (spaces escaped) by transformers
@@ -140,18 +153,10 @@ async function commentOnGitHubIssueForAlert(
   fingerprint: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const commentBody = [
-      `**Alert Update**`,
-      `- **State**: ${alertEvent.state}`,
-      `- **Occurred At**: ${formatTimestampToPST(alertEvent.occurred_at)}`,
-      alertEvent.reason ? `- **Reason**: ${alertEvent.reason}` : "",
-      "",
-      "The alert condition is still active.",
-      "",
-      `**Fingerprint**: \`${fingerprint}\``,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const commentBody =
+      `**Alert Update**\n\n` +
+      formatAlertBody(alertEvent, fingerprint) +
+      `\nThe alert condition is still active.\n`;
 
     const success = await githubClient.commentOnGithubIssue(
       issueNumber,
