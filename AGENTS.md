@@ -1,7 +1,7 @@
 # Alerting Infrastructure Repository Guidelines
 
 ## Project Structure & Module Organization
-- `infra/` - Terraform infrastructure definitions
+- `infra/` - OpenTofu infrastructure definitions
   - Core AWS resources: SNS topics, SQS queues, Lambda functions, DynamoDB tables
   - IAM roles and policies with least-privilege access
   - Environment-specific configurations (`dev.tfvars`, `prod.tfvars`)
@@ -62,7 +62,7 @@ The system implements a serverless event-driven architecture:
   - Constants: SCREAMING_SNAKE_CASE
 
 ### Infrastructure as Code
-- **Terraform**: Standard HCL formatting with `terraform fmt`
+- **OpenTofu**: Standard HCL formatting with `tofu fmt`
 - **Resource naming**: `{environment}-{service}-{resource}` pattern
 - **Variables**: snake_case with descriptive names and validation
 
@@ -109,7 +109,7 @@ it('should respect rate limits when creating GitHub issues')
 ### Pull Requests
 - **Description**: Clear problem statement and solution approach
 - **Testing**: Include test results and coverage changes
-- **Infrastructure**: Terraform plan output for infrastructure changes
+- **Infrastructure**: OpenTofu plan output for infrastructure changes
 - **Security**: Highlight any security implications or improvements
 - **Rollback**: Document rollback procedures for risky changes
 
@@ -130,7 +130,7 @@ it('should respect rate limits when creating GitHub issues')
 - **Webhook Security**: Shared secret validation for Grafana webhooks
 
 ## Infrastructure Best Practices
-### Terraform
+### OpenTofu
 - **State Management**: Remote state with backend configuration
 - **Environment Separation**: Isolated state files per environment
 - **Least Privilege**: Minimal IAM permissions with explicit resource ARNs

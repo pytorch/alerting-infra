@@ -3,7 +3,7 @@
 This project implements a comprehensive alert normalization pipeline that processes CloudWatch and Grafana alerts, normalizes them into a canonical format, and creates GitHub issues for incident management.
 
 ## Project Structure
-- `infra/` - Terraform infrastructure definitions (SNS, SQS, DynamoDB, Lambda, IAM)
+- `infra/` - OpenTofu infrastructure definitions (SNS, SQS, DynamoDB, Lambda, IAM)
 - `lambdas/` - TypeScript Lambda functions
   - `lambdas/collector/` - Main alert processing Lambda with transformers
   - `lambdas/external-alerts-webhook/` - Webhook Lambda for Grafana integration
@@ -12,10 +12,10 @@ This project implements a comprehensive alert normalization pipeline that proces
 - `scratch/` - Development workspace
 
 ## Prerequisites
-- Terraform >= 1.6
+- OpenTofu >= 1.6
 - AWS CLI configured (SSO or profile)
 - Node.js 18+ and Yarn
-- Optional: LocalStack + `tflocal`/`awslocal` for local testing
+- Optional: LocalStack + `tflocal` (with `TF_CMD=tofu`) / `awslocal` for local testing
 
 ## Allowed Commands
 The following commands are pre-approved for this project:
@@ -30,8 +30,8 @@ The following commands are pre-approved for this project:
 - `cd lambdas/collector && yarn lint` - TypeScript type checking
 
 ### Deployment Commands (AWS)
-- `make aws-init-dev` - Initialize Terraform backend for dev
-- `make aws-init-prod` - Initialize Terraform backend for prod
+- `make aws-init-dev` - Initialize OpenTofu backend for dev
+- `make aws-init-prod` - Initialize OpenTofu backend for prod
 - `make aws-apply-dev` - Deploy to dev environment
 - `make aws-apply-prod` - Deploy to prod environment
 - `make aws-destroy-dev` - Destroy dev environment
@@ -171,7 +171,7 @@ interface AlertEvent {
 
 ### Infrastructure Architecture
 
-#### AWS Resources (Terraform)
+#### AWS Resources (OpenTofu)
 - **SNS Topic** (`aws_sns_topic.alerts`): Multi-source alert ingestion
 - **SQS Queue** (`aws_sqs_queue.alerts`): Alert buffering with visibility timeout
 - **DLQ** (`aws_sqs_queue.dlq`): Failed message handling
@@ -244,7 +244,7 @@ interface AlertEvent {
 - `GITHUB_APP_SECRET_ID`: Secrets Manager secret name
 - `ENABLE_GITHUB_ISSUES`: Feature flag for GitHub integration
 
-#### Terraform Variables
+#### OpenTofu Variables
 - `aws_region`: Deployment region
 - `name_prefix`: Resource naming prefix
 - `github_repo`: Target repository
