@@ -337,7 +337,7 @@ Encryption
 
 15) Deployment and IaC
 
-Terraform resources
+OpenTofu resources
 • aws_sns_topic.* (per-source or shared)
 • aws_sqs_queue.alerts_queue and aws_sqs_queue.alerts_dlq
 • aws_sns_topic_subscription to SQS with redrive policies
@@ -349,7 +349,7 @@ Terraform resources
 
 CI/CD with GitHub Actions
 • Build Lambda artifact; deploy via AWS OIDC.
-• Apply Terraform (manual approval for prod).
+• Apply OpenTofu (manual approval for prod).
 • Sync .alerting/alert-routing.yml to S3 on merges to main.
 
 Runtime configuration

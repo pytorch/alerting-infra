@@ -36,53 +36,53 @@ clean:
 
 # Apply
 aws-apply-dev: aws-init-dev build
-	cd infra && terraform apply -auto-approve -var-file=dev.tfvars
+	cd infra && tofu apply -auto-approve -var-file=dev.tfvars
 
 aws-apply-prod: aws-init-prod build
-	cd infra && terraform apply -auto-approve -var-file=prod.tfvars
+	cd infra && tofu apply -auto-approve -var-file=prod.tfvars
 
 ls-apply: build
 	cd infra \
 		&& rm -rf .terraform terraform.tfstate terraform.tfstate.backup \
 		&& ( [ -f versions.remote.tf ] && mv versions.remote.tf versions.remote.tf.bak || true ) \
-		&& tflocal init -backend=false -reconfigure \
-		&& tflocal apply -auto-approve \
+		&& TF_CMD=tofu tflocal init -backend=false -reconfigure \
+		&& TF_CMD=tofu tflocal apply -auto-approve \
 		&& ( [ -f versions.remote.tf.bak ] && mv versions.remote.tf.bak versions.remote.tf || true )
 
 # Explicit backend init targets (idempotent).  These should run whenever
 # you want to change the backend config.
 aws-init-dev:
-	cd infra && terraform init -reconfigure -backend-config=backend-dev.hcl
+	cd infra && tofu init -reconfigure -backend-config=backend-dev.hcl
 
 aws-init-prod:
-	cd infra && terraform init -reconfigure -backend-config=backend-prod.hcl
+	cd infra && tofu init -reconfigure -backend-config=backend-prod.hcl
 
 # Destroy
 destroy:
-	cd infra && terraform destroy -auto-approve
+	cd infra && tofu destroy -auto-approve
 
 aws-destroy-dev: aws-init-dev
-	cd infra && terraform destroy -auto-approve -var-file=dev.tfvars
+	cd infra && tofu destroy -auto-approve -var-file=dev.tfvars
 
 aws-destroy-prod: aws-init-prod
-	cd infra && terraform destroy -auto-approve -var-file=prod.tfvars
+	cd infra && tofu destroy -auto-approve -var-file=prod.tfvars
 
 ls-destroy:
 	cd infra \
 		&& rm -rf .terraform terraform.tfstate terraform.tfstate.backup \
 		&& ( [ -f versions.remote.tf ] && mv versions.remote.tf versions.remote.tf.bak || true ) \
-		&& tflocal destroy -auto-approve \
+		&& TF_CMD=tofu tflocal destroy -auto-approve \
 		&& ( [ -f versions.remote.tf.bak ] && mv versions.remote.tf.bak versions.remote.tf || true )
 
 # Publish
 aws-publish-dev: aws-init-dev
-	cd infra && TOPIC=$$(terraform output -raw sns_topic_arn); aws sns publish --region $(DEV_REGION) --topic-arn $$TOPIC --message '{"hello":"dev for github"}'
+	cd infra && TOPIC=$$(tofu output -raw sns_topic_arn); aws sns publish --region $(DEV_REGION) --topic-arn $$TOPIC --message '{"hello":"dev for github"}'
 
 aws-publish-prod: aws-init-prod
-	cd infra && TOPIC=$$(terraform output -raw sns_topic_arn); aws sns publish --region $(PROD_REGION) --topic-arn $$TOPIC --message '{"hello":"prod"}'
+	cd infra && TOPIC=$$(tofu output -raw sns_topic_arn); aws sns publish --region $(PROD_REGION) --topic-arn $$TOPIC --message '{"hello":"prod"}'
 
 ls-publish:
-	cd infra && awslocal sns publish --topic-arn $$(tflocal output -raw sns_topic_arn) --message '{"hello":"localstack"}'
+	cd infra && awslocal sns publish --topic-arn $$(TF_CMD=tofu tflocal output -raw sns_topic_arn) --message '{"hello":"localstack"}'
 
 # Logs
 logs-dev: aws-logs-dev
@@ -92,13 +92,13 @@ logs-prod: aws-logs-prod
 	@true
 
 aws-logs-dev: aws-init-dev
-	cd infra && LAMBDA=$$(terraform output -raw collector_name); aws logs tail --region $(DEV_REGION) /aws/lambda/$$LAMBDA --follow
+	cd infra && LAMBDA=$$(tofu output -raw collector_name); aws logs tail --region $(DEV_REGION) /aws/lambda/$$LAMBDA --follow
 
 aws-logs-prod: aws-init-prod
-	cd infra && LAMBDA=$$(terraform output -raw collector_name); aws logs tail --region $(PROD_REGION) /aws/lambda/$$LAMBDA --follow
+	cd infra && LAMBDA=$$(tofu output -raw collector_name); aws logs tail --region $(PROD_REGION) /aws/lambda/$$LAMBDA --follow
 
 ls-logs:
 	cd infra \
 		&& ( [ -f versions.remote.tf ] && mv versions.remote.tf versions.remote.tf.bak || true ) \
-		&& awslocal logs tail /aws/lambda/$$(tflocal output -raw collector_name) --follow \
+		&& awslocal logs tail /aws/lambda/$$(TF_CMD=tofu tflocal output -raw collector_name) --follow \
 		&& ( [ -f versions.remote.tf.bak ] && mv versions.remote.tf.bak versions.remote.tf || true )

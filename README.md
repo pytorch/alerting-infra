@@ -152,7 +152,7 @@ graph TD
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Terraform** >= 1.6
+- **OpenTofu** >= 1.6
 - **AWS CLI** configured (SSO or profile)
 - **Node.js** 18+ and Yarn
 - **GitHub App** with issues permissions (see setup below)
@@ -190,7 +190,7 @@ make aws-publish-dev
 **Grafana Webhook:**
 ```bash
 # Get webhook URL
-cd infra && terraform output -raw external_alerts_webhook_url
+cd infra && tofu output -raw external_alerts_webhook_url
 
 # Configure in Grafana with header:
 # X-Grafana-Token: <your-webhook-token>
@@ -199,13 +199,13 @@ cd infra && terraform output -raw external_alerts_webhook_url
 **CloudWatch Alarms:**
 ```bash
 # Get SNS topic ARN for CloudWatch alarm actions
-cd infra && terraform output -raw sns_topic_arn
+cd infra && tofu output -raw sns_topic_arn
 ```
 
 ## 📁 Project Structure
 
 ```
-├── infra/                    # Terraform infrastructure
+├── infra/                    # OpenTofu infrastructure
 │   ├── *.tf                 # AWS resource definitions
 │   ├── dev.tfvars          # Development environment config
 │   ├── prod.tfvars         # Production environment config
@@ -243,14 +243,14 @@ yarn lint                   # TypeScript checking
 ### Deployment & Management
 ```bash
 # Development Environment
-make aws-init-dev           # Initialize Terraform backend
+make aws-init-dev           # Initialize OpenTofu backend
 make aws-apply-dev          # Deploy to dev
 make aws-destroy-dev        # Destroy dev resources
 make logs-dev              # Tail dev Lambda logs
 make aws-publish-dev       # Send test message
 
 # Production Environment
-make aws-init-prod         # Initialize Terraform backend
+make aws-init-prod         # Initialize OpenTofu backend
 make aws-apply-prod        # Deploy to prod
 make aws-destroy-prod      # Destroy prod resources
 make logs-prod            # Tail prod Lambda logs
@@ -295,7 +295,7 @@ aws secretsmanager create-secret \
 
 **Webhook Token Setup**
 
-**Important**: The webhook secret for each environment must be created **before** deploying the infrastructure. Terraform references it but doesn't manage it.
+**Important**: The webhook secret for each environment must be created **before** deploying the infrastructure. OpenTofu references it but doesn't manage it.
 
 1. **Generate a secure token**:
 ```bash
@@ -304,7 +304,7 @@ TOKEN=$(openssl rand -base64 64)
 echo "Generated token: $TOKEN"
 ```
 
-2. **Create the secret** (before running terraform):
+2. **Create the secret** (before running tofu):
 ```bash
 # Create the secret (adjust name for your environment)
 aws secretsmanager create-secret \
@@ -315,12 +315,12 @@ aws secretsmanager create-secret \
 
 3. **Deploy infrastructure**:
 ```bash
-# Now Terraform can reference the existing secret
+# Now OpenTofu can reference the existing secret
 make aws-apply-dev
 ```
 
 4. **Configure Grafana notification policy** with:
-   - **URL**: Get with `terraform output -raw external_alerts_webhook_url` (after `make aws-init-dev` or `make aws-init-prod`)
+   - **URL**: Get with `tofu output -raw external_alerts_webhook_url` (after `make aws-init-dev` or `make aws-init-prod`)
    - **Method**: POST
    - **Header**: `X-Grafana-Token: <your-generated-token>`
 
@@ -362,11 +362,11 @@ Point your new service webhook to the alerting system endpoint:
 # Get webhook URL (make sure you've initialized the correct environment first)
 # For dev environment:
 make aws-init-dev
-cd infra && terraform output -raw external_alerts_webhook_url
+cd infra && tofu output -raw external_alerts_webhook_url
 
 # For prod environment:
 make aws-init-prod
-cd infra && terraform output -raw external_alerts_webhook_url
+cd infra && tofu output -raw external_alerts_webhook_url
 ```
 
 Configure your service to send POST requests to this URL with the appropriate authentication header.
@@ -661,13 +661,13 @@ aws logs tail /aws/lambda/alerting-dev-collector --follow
 aws dynamodb scan --table-name alerting-dev-alerts-state --limit 10
 
 # View DLQ messages
-aws sqs receive-message --queue-url $(terraform output -raw dlq_url)
+aws sqs receive-message --queue-url $(tofu output -raw dlq_url)
 
 # Test alert processing locally
 cd lambdas/collector && yarn test --verbose
 
-# Validate Terraform configuration
-cd infra && terraform validate && terraform plan
+# Validate OpenTofu configuration
+cd infra && tofu validate && tofu plan
 ```
 
 ## 🔐 Security Features
