@@ -42,6 +42,41 @@ describe("dateFormatter", () => {
       expect(result).toContain("11:10am PST");
     });
 
+    it("should keep the Pacific date for early-morning times", () => {
+      // 15:44 UTC is 7:44am PST on the same day, not the day before
+      expect(formatTimestampToPST("2026-11-02T15:44:00.000Z")).toBe(
+        "Nov 2, 7:44am PST",
+      );
+      // 07:10 UTC is 12:10am PDT
+      expect(formatTimestampToPST("2025-09-03T07:10:00.000Z")).toBe(
+        "Sep 3, 12:10am PDT",
+      );
+    });
+
+    it("should use the previous Pacific date for late-evening times", () => {
+      // 03:00 UTC on Nov 3 is still 7:00pm on Nov 2 in PST
+      expect(formatTimestampToPST("2026-11-03T03:00:00.000Z")).toBe(
+        "Nov 2, 7:00pm PST",
+      );
+    });
+
+    it("should switch PDT to PST at 2am Pacific, not at midnight UTC", () => {
+      // DST ends on Nov 1, 2026 at 2am PDT (09:00 UTC)
+      expect(formatTimestampToPST("2026-11-01T08:30:00.000Z")).toBe(
+        "Nov 1, 1:30am PDT",
+      );
+      expect(formatTimestampToPST("2026-11-01T09:30:00.000Z")).toBe(
+        "Nov 1, 1:30am PST",
+      );
+      // DST starts on Mar 8, 2026 at 2am PST (10:00 UTC)
+      expect(formatTimestampToPST("2026-03-08T09:30:00.000Z")).toBe(
+        "Mar 8, 1:30am PST",
+      );
+      expect(formatTimestampToPST("2026-03-08T10:30:00.000Z")).toBe(
+        "Mar 8, 3:30am PDT",
+      );
+    });
+
     it("should handle invalid timestamp gracefully", () => {
       const invalidTimestamp = "not-a-valid-timestamp";
       const result = formatTimestampToPST(invalidTimestamp);
