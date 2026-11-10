@@ -15,9 +15,9 @@ const PACIFIC_FORMAT = new Intl.DateTimeFormat("en-US", {
 });
 
 /**
- * Convert UTC ISO8601 timestamp to PST and format in human-readable way
+ * Convert UTC ISO8601 timestamp to Pacific time (PST or PDT) and format in human-readable way
  * @param utcTimestamp ISO8601 UTC timestamp (e.g., "2025-09-03T19:10:01.000Z")
- * @returns Human-readable PST timestamp (e.g., "Sep 3, 12:10pm PST")
+ * @returns Human-readable Pacific timestamp (e.g., "Sep 3, 12:10pm PDT")
  */
 export function formatTimestampToPST(utcTimestamp: string): string {
   try {

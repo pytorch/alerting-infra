@@ -112,7 +112,7 @@ describe("dateFormatter", () => {
     });
 
     it("should produce the exact desired format", () => {
-      // Test the exact format requested: "Sep 3, 12:10pm PST"
+      // Test the exact format requested: "Sep 3, 12:10pm PDT"
       const utcTimestamp = "2025-09-03T19:10:01.000Z"; // Should be 12:10pm PDT in September
       const result = formatTimestampToPST(utcTimestamp);
 
