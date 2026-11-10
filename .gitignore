@@ -21,7 +21,9 @@ infra/external-alerts-webhook.zip
 sample_data/
 scratch/
 
-.claude/
+# Ignore local agent state, but track committed skills.
+.claude/*
+!.claude/skills/
 
 # Watchman temporary files
 .watchman-cookie-*
