@@ -1,5 +1,9 @@
 import { defineConfig } from "vitest/config";
 
+// Run tests in UTC, like the Lambda, so time zone bugs show up on every
+// machine. Set here, before the test workers start, so they inherit it.
+process.env.TZ = "UTC";
+
 export default defineConfig({
   test: {
     // Test files
